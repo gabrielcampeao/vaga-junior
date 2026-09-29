@@ -5,6 +5,7 @@ import com.gabrielcampeao.posto.service.AbastecimentoService;
 import com.gabrielcampeao.posto.web.dto.AbastecimentoRequest;
 import com.gabrielcampeao.posto.web.dto.AbastecimentoResponse;
 import com.gabrielcampeao.posto.web.dto.ErroResponse;
+import com.gabrielcampeao.posto.web.dto.ResumoVendasResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -28,6 +29,7 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Tag(name = "Abastecimentos", description = "Endpoints para registro e consulta de abastecimentos")
 @RestController
@@ -50,6 +52,14 @@ public class AbastecimentoController {
         return service.pesquisar(bombaId, inicio, fim, pageable).map(AbastecimentoResponse::fromEntity);
     }
 
+    @Operation(summary = "Obter resumo de vendas por período agrupado por tipo de combustível")
+    @GetMapping("/resumo")
+    public List<ResumoVendasResponse> resumo(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fim) {
+        return service.obterResumoVendas(inicio, fim);
+    }
+
     @Operation(summary = "Buscar abastecimento por ID", responses = {
             @ApiResponse(responseCode = "200", description = "Abastecimento encontrado"),
             @ApiResponse(responseCode = "404", description = "Abastecimento não encontrado", content = @Content(schema = @Schema(implementation = ErroResponse.class)))
@@ -61,7 +71,7 @@ public class AbastecimentoController {
 
     @Operation(summary = "Registrar abastecimento", description = "O servidor calcula o valor total automaticamente com base no preço por litro atual da bomba.", responses = {
             @ApiResponse(responseCode = "201", description = "Abastecimento registrado"),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos ou quantidade de litros negativa"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos ou quantidade de litros excede limite permitida"),
             @ApiResponse(responseCode = "404", description = "Bomba informada não encontrada", content = @Content(schema = @Schema(implementation = ErroResponse.class)))
     })
     @PostMapping

@@ -5,6 +5,7 @@ import com.gabrielcampeao.posto.domain.Bomba;
 import com.gabrielcampeao.posto.repository.AbastecimentoRepository;
 import com.gabrielcampeao.posto.service.exception.LimiteLitrosExcedidoException;
 import com.gabrielcampeao.posto.service.exception.RecursoNaoEncontradoException;
+import com.gabrielcampeao.posto.web.dto.ResumoVendasResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 public class AbastecimentoService {
@@ -45,6 +47,12 @@ public class AbastecimentoService {
         }
 
         return abastecimentoRepository.findAll(pageableOrdenado);
+    }
+
+    public List<ResumoVendasResponse> obterResumoVendas(LocalDateTime inicio, LocalDateTime fim) {
+        LocalDateTime dataInicio = inicio != null ? inicio : LocalDateTime.now().minusDays(30);
+        LocalDateTime dataFim = fim != null ? fim : LocalDateTime.now();
+        return abastecimentoRepository.gerarResumoVendasPorPeriodo(dataInicio, dataFim);
     }
 
     public Abastecimento buscarPorId(Long id) {
