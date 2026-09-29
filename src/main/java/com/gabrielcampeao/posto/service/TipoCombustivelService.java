@@ -1,8 +1,10 @@
 package com.gabrielcampeao.posto.service;
 
 import com.gabrielcampeao.posto.domain.TipoCombustivel;
+import com.gabrielcampeao.posto.repository.BombaRepository;
 import com.gabrielcampeao.posto.repository.TipoCombustivelRepository;
 import com.gabrielcampeao.posto.service.exception.NomeDuplicadoException;
+import com.gabrielcampeao.posto.service.exception.RecursoEmUsoException;
 import com.gabrielcampeao.posto.service.exception.RecursoNaoEncontradoException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -13,9 +15,12 @@ import org.springframework.transaction.annotation.Transactional;
 public class TipoCombustivelService {
 
     private final TipoCombustivelRepository tipoCombustivelRepository;
+    private final BombaRepository bombaRepository;
 
-    public TipoCombustivelService(TipoCombustivelRepository tipoCombustivelRepository) {
+    public TipoCombustivelService(TipoCombustivelRepository tipoCombustivelRepository,
+                                  BombaRepository bombaRepository) {
         this.tipoCombustivelRepository = tipoCombustivelRepository;
+        this.bombaRepository = bombaRepository;
     }
 
     public Page<TipoCombustivel> listar(Pageable pageable) {
@@ -46,6 +51,13 @@ public class TipoCombustivelService {
     @Transactional
     public void excluir(Long id) {
         TipoCombustivel tipo = buscarPorId(id);
+
+        if (bombaRepository.existsByTipoCombustivelId(tipo.getId())) {
+            throw new RecursoEmUsoException(
+                    "Não é possível excluir o combustível \"" + tipo.getNome()
+                    + "\" porque existem bombas cadastradas com esse tipo");
+        }
+
         tipoCombustivelRepository.delete(tipo);
     }
 
