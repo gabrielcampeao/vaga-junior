@@ -3,7 +3,9 @@ package com.gabrielcampeao.posto.service;
 import com.gabrielcampeao.posto.domain.Abastecimento;
 import com.gabrielcampeao.posto.domain.Bomba;
 import com.gabrielcampeao.posto.repository.AbastecimentoRepository;
+import com.gabrielcampeao.posto.service.exception.LimiteLitrosExcedidoException;
 import com.gabrielcampeao.posto.service.exception.RecursoNaoEncontradoException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -20,15 +22,17 @@ public class AbastecimentoService {
 
     private final AbastecimentoRepository abastecimentoRepository;
     private final BombaService bombaService;
+    private final BigDecimal limiteLitros;
 
     public AbastecimentoService(AbastecimentoRepository abastecimentoRepository,
-                                BombaService bombaService) {
+                                BombaService bombaService,
+                                @Value("${posto.abastecimento.limite-litros:200.000}") BigDecimal limiteLitros) {
         this.abastecimentoRepository = abastecimentoRepository;
         this.bombaService = bombaService;
+        this.limiteLitros = limiteLitros;
     }
 
     public Page<Abastecimento> pesquisar(Long bombaId, LocalDateTime inicio, LocalDateTime fim, Pageable pageable) {
-        // Ordenacao padrão pelo mais recente caso nao especificada
         Sort sort = pageable.getSort().isSorted() ? pageable.getSort() : Sort.by(Sort.Direction.DESC, "dataHora");
         Pageable pageableOrdenado = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
 
@@ -51,10 +55,10 @@ public class AbastecimentoService {
 
     @Transactional
     public Abastecimento registrar(Long bombaId, BigDecimal litros, LocalDateTime dataHora) {
-        Bomba bomba = bombaService.buscarPorId(bombaId);
+        validarLimiteLitros(litros);
 
+        Bomba bomba = bombaService.buscarPorId(bombaId);
         BigDecimal precoLitro = bomba.getTipoCombustivel().getPrecoLitro();
-        // Calculo com HALF_UP para 2 casas decimais
         BigDecimal valorTotal = litros.multiply(precoLitro).setScale(2, RoundingMode.HALF_UP);
         LocalDateTime dataRegistro = dataHora != null ? dataHora : LocalDateTime.now();
 
@@ -64,6 +68,8 @@ public class AbastecimentoService {
 
     @Transactional
     public Abastecimento atualizar(Long id, Long bombaId, BigDecimal litros, LocalDateTime dataHora) {
+        validarLimiteLitros(litros);
+
         Abastecimento existente = buscarPorId(id);
         Bomba bomba = bombaService.buscarPorId(bombaId);
 
@@ -85,5 +91,12 @@ public class AbastecimentoService {
     public void excluir(Long id) {
         Abastecimento abastecimento = buscarPorId(id);
         abastecimentoRepository.delete(abastecimento);
+    }
+
+    private void validarLimiteLitros(BigDecimal litros) {
+        if (limiteLitros != null && litros.compareTo(limiteLitros) > 0) {
+            throw new LimiteLitrosExcedidoException(
+                    "Quantidade de litros (" + litros + ") excede o limite máximo permitido por abastecimento (" + limiteLitros + " litros)");
+        }
     }
 }

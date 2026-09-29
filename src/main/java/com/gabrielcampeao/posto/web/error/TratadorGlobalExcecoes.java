@@ -1,5 +1,6 @@
 package com.gabrielcampeao.posto.web.error;
 
+import com.gabrielcampeao.posto.service.exception.LimiteLitrosExcedidoException;
 import com.gabrielcampeao.posto.service.exception.NomeDuplicadoException;
 import com.gabrielcampeao.posto.service.exception.RecursoEmUsoException;
 import com.gabrielcampeao.posto.service.exception.RecursoNaoEncontradoException;
@@ -33,6 +34,12 @@ public class TratadorGlobalExcecoes {
     public ResponseEntity<ErroResponse> handleNomeDuplicado(NomeDuplicadoException ex) {
         ErroResponse erro = ErroResponse.of(409, "Conflito", ex.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(erro);
+    }
+
+    @ExceptionHandler(LimiteLitrosExcedidoException.class)
+    public ResponseEntity<ErroResponse> handleLimiteLitrosExcedido(LimiteLitrosExcedidoException ex) {
+        ErroResponse erro = ErroResponse.of(400, "Limite Excedido", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(erro);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
