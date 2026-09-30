@@ -16,23 +16,13 @@ import java.math.BigDecimal;
 public class DataInitializer {
 
     @Bean
-    public CommandLineRunner initData(TipoCombustivelRepository tipoRepository, BombaRepository bombaRepository) {
+    public CommandLineRunner initData(TipoCombustivelRepository tipoRepository,
+                                     BombaRepository bombaRepository,
+                                     MigracaoNomesNormalizados migracao) {
         return args -> {
-            // Migração de dados já salvos: preenche os campos nomeNormalizado e identificadorNormalizado
-            // para registros existentes no banco local criados antes da adição das restrições de integridade.
-            tipoRepository.findAll().forEach(tipo -> {
-                if (tipo.getNomeNormalizado() == null && tipo.getNome() != null) {
-                    tipo.setNome(tipo.getNome());
-                    tipoRepository.save(tipo);
-                }
-            });
-
-            bombaRepository.findAll().forEach(bomba -> {
-                if (bomba.getIdentificadorNormalizado() == null && bomba.getIdentificador() != null) {
-                    bomba.setIdentificador(bomba.getIdentificador());
-                    bombaRepository.save(bomba);
-                }
-            });
+            // Migração de dados legados: preenche os campos normalizados de forma segura,
+            // tratando duplicatas preexistentes com sufixos ao invés de lançar exceção.
+            migracao.migrar();
 
             if (tipoRepository.count() == 0) {
                 TipoCombustivel gasolina = tipoRepository.save(new TipoCombustivel("Gasolina Comum", new BigDecimal("5.899")));
