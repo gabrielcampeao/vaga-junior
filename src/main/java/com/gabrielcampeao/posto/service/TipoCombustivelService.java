@@ -23,10 +23,12 @@ public class TipoCombustivelService {
         this.bombaRepository = bombaRepository;
     }
 
+    @Transactional(readOnly = true)
     public Page<TipoCombustivel> listar(Pageable pageable) {
         return tipoCombustivelRepository.findAll(pageable);
     }
 
+    @Transactional(readOnly = true)
     public TipoCombustivel buscarPorId(Long id) {
         return tipoCombustivelRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
@@ -35,6 +37,7 @@ public class TipoCombustivelService {
 
     @Transactional
     public TipoCombustivel criar(TipoCombustivel tipo) {
+        tipo.setNome(tipo.getNome().trim());
         validarNomeDuplicado(tipo.getNome(), null);
         return tipoCombustivelRepository.save(tipo);
     }
@@ -42,8 +45,9 @@ public class TipoCombustivelService {
     @Transactional
     public TipoCombustivel atualizar(Long id, TipoCombustivel dados) {
         TipoCombustivel existente = buscarPorId(id);
-        validarNomeDuplicado(dados.getNome(), id);
-        existente.setNome(dados.getNome());
+        String nomeNormalizado = dados.getNome().trim();
+        validarNomeDuplicado(nomeNormalizado, id);
+        existente.setNome(nomeNormalizado);
         existente.setPrecoLitro(dados.getPrecoLitro());
         return tipoCombustivelRepository.save(existente);
     }
@@ -63,8 +67,8 @@ public class TipoCombustivelService {
 
     private void validarNomeDuplicado(String nome, Long idIgnorar) {
         boolean duplicado = idIgnorar == null
-                ? tipoCombustivelRepository.existsByNome(nome)
-                : tipoCombustivelRepository.existsByNomeAndIdNot(nome, idIgnorar);
+                ? tipoCombustivelRepository.existsByNomeIgnoreCase(nome)
+                : tipoCombustivelRepository.existsByNomeIgnoreCaseAndIdNot(nome, idIgnorar);
 
         if (duplicado) {
             throw new NomeDuplicadoException(

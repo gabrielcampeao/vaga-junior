@@ -27,10 +27,12 @@ public class BombaService {
         this.abastecimentoRepository = abastecimentoRepository;
     }
 
+    @Transactional(readOnly = true)
     public Page<Bomba> listar(Pageable pageable) {
         return bombaRepository.findAll(pageable);
     }
 
+    @Transactional(readOnly = true)
     public Bomba buscarPorId(Long id) {
         return bombaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
@@ -39,19 +41,21 @@ public class BombaService {
 
     @Transactional
     public Bomba criar(String identificador, Long tipoCombustivelId) {
-        validarIdentificadorDuplicado(identificador, null);
+        String idNormalizado = identificador.trim();
+        validarIdentificadorDuplicado(idNormalizado, null);
         TipoCombustivel tipo = tipoCombustivelService.buscarPorId(tipoCombustivelId);
-        Bomba bomba = new Bomba(identificador, tipo);
+        Bomba bomba = new Bomba(idNormalizado, tipo);
         return bombaRepository.save(bomba);
     }
 
     @Transactional
     public Bomba atualizar(Long id, String identificador, Long tipoCombustivelId) {
         Bomba existente = buscarPorId(id);
-        validarIdentificadorDuplicado(identificador, id);
+        String idNormalizado = identificador.trim();
+        validarIdentificadorDuplicado(idNormalizado, id);
         TipoCombustivel tipo = tipoCombustivelService.buscarPorId(tipoCombustivelId);
 
-        existente.setIdentificador(identificador);
+        existente.setIdentificador(idNormalizado);
         existente.setTipoCombustivel(tipo);
         return bombaRepository.save(existente);
     }
@@ -71,8 +75,8 @@ public class BombaService {
 
     private void validarIdentificadorDuplicado(String identificador, Long idIgnorar) {
         boolean duplicado = idIgnorar == null
-                ? bombaRepository.existsByIdentificador(identificador)
-                : bombaRepository.existsByIdentificadorAndIdNot(identificador, idIgnorar);
+                ? bombaRepository.existsByIdentificadorIgnoreCase(identificador)
+                : bombaRepository.existsByIdentificadorIgnoreCaseAndIdNot(identificador, idIgnorar);
 
         if (duplicado) {
             throw new NomeDuplicadoException(

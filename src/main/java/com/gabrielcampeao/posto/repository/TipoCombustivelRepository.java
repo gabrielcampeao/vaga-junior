@@ -5,7 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface TipoCombustivelRepository extends JpaRepository<TipoCombustivel, Long> {
 
-    boolean existsByNome(String nome);
+    boolean existsByNomeIgnoreCase(String nome);
 
-    boolean existsByNomeAndIdNot(String nome, Long id);
+    boolean existsByNomeIgnoreCaseAndIdNot(String nome, Long id);
 }

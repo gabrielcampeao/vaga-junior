@@ -19,12 +19,15 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -152,5 +155,169 @@ class IntegracaoControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status", is(400)))
                 .andExpect(jsonPath("$.campos", notNullValue()));
+    }
+
+    @Test
+    @DisplayName("Deve retornar abastecimento por id com bomba e tipo de combustível carregados")
+    void deveRetornarAbastecimentoPorIdComBombaETipoCombustivel() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("GNV", new BigDecimal("3.500")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-10", tipo));
+
+        AbastecimentoRequest request = new AbastecimentoRequest(bomba.getId(), new BigDecimal("5.000"), null);
+
+        String location = mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getHeader("Location");
+
+        mockMvc.perform(get(location))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.bomba.identificador", is("B-10")))
+                .andExpect(jsonPath("$.bomba.tipoCombustivel.nome", is("GNV")));
+    }
+
+    @Test
+    @DisplayName("Deve listar abastecimentos com bomba e tipo de combustível carregados")
+    void deveListarAbastecimentosComBombaETipoCombustivel() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Diesel S10", new BigDecimal("6.500")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-11", tipo));
+
+        AbastecimentoRequest request = new AbastecimentoRequest(bomba.getId(), new BigDecimal("20.000"), null);
+
+        mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/abastecimentos"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content[0].bomba.identificador", is("B-11")))
+                .andExpect(jsonPath("$.content[0].bomba.tipoCombustivel.nome", is("Diesel S10")));
+    }
+
+    @Test
+    @DisplayName("Deve filtrar abastecimentos combinando data e bomba, permitindo intervalos abertos")
+    void deveFiltrarAbastecimentosComIntervalosAbertos() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Diesel S10", new BigDecimal("6.500")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-11", tipo));
+
+        AbastecimentoRequest request = new AbastecimentoRequest(bomba.getId(), new BigDecimal("20.000"), null);
+
+        mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/abastecimentos?bombaId=" + bomba.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)));
+
+        mockMvc.perform(get("/api/abastecimentos?inicio=2020-01-01T00:00:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)));
+
+        mockMvc.perform(get("/api/abastecimentos?fim=2050-01-01T00:00:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content", hasSize(1)));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 400 se data de início for maior que data de fim no filtro")
+    void deveRetornar400SeInicioMaiorQueFim() throws Exception {
+        mockMvc.perform(get("/api/abastecimentos?inicio=2024-01-02T00:00:00&fim=2024-01-01T00:00:00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.mensagem", is("A data de início não pode ser posterior à data de fim")));
+    }
+
+    @Test
+    @DisplayName("Atualizar abastecimento não deve alterar o preço histórico se a bomba não mudar")
+    void devePreservarPrecoHistoricoNaAtualizacao() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Etanol", new BigDecimal("3.500")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-03", tipo));
+
+        AbastecimentoRequest request = new AbastecimentoRequest(bomba.getId(), new BigDecimal("10.0"), null);
+        String location = mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getHeader("Location");
+
+        TipoCombustivelRequest requestUpdatePreco = new TipoCombustivelRequest("Etanol", new BigDecimal("4.000"));
+        mockMvc.perform(put("/api/tipos-combustivel/" + tipo.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestUpdatePreco)))
+                .andExpect(status().isOk());
+
+        AbastecimentoRequest requestUpdateAbastecimento = new AbastecimentoRequest(bomba.getId(), new BigDecimal("10.0"), null);
+        mockMvc.perform(put(location)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestUpdateAbastecimento)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.precoLitro", is(3.5)))
+                .andExpect(jsonPath("$.valorTotal", is(35.0)));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 400 se a quantidade de litros tiver mais de 3 casas decimais")
+    void deveRetornar400SeLitrosTiverMaisDeTresCasasDecimais() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Diesel", new BigDecimal("6.000")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-20", tipo));
+
+        AbastecimentoRequest request = new AbastecimentoRequest(bomba.getId(), new BigDecimal("10.1234"), null);
+
+        mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.campos.litros", is("A quantidade de litros deve ter até 7 dígitos inteiros e 3 casas decimais")));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 400 se a dataHora for no futuro")
+    void deveRetornar400SeDataHoraFutura() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("GNV S", new BigDecimal("3.000")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-21", tipo));
+
+        AbastecimentoRequest request = new AbastecimentoRequest(bomba.getId(), new BigDecimal("10.000"), LocalDateTime.now().plusDays(1));
+
+        mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.campos.dataHora", is("A data e hora não pode estar no futuro")));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 409 ao tentar cadastrar combustível com nome duplicado ignorando maiúsculas e minúsculas")
+    void deveRetornar409QuandoNomeCombustivelDuplicadoIgnoreCase() throws Exception {
+        tipoCombustivelRepository.save(new TipoCombustivel("Etanol", new BigDecimal("4.099")));
+
+        TipoCombustivelRequest request = new TipoCombustivelRequest("etanol", new BigDecimal("4.199"));
+
+        mockMvc.perform(post("/api/tipos-combustivel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status", is(409)))
+                .andExpect(jsonPath("$.erro", is("Conflito")));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 409 ao tentar cadastrar combustível com nome duplicado ignorando espaços extras")
+    void deveRetornar409QuandoNomeCombustivelDuplicadoComEspacos() throws Exception {
+        tipoCombustivelRepository.save(new TipoCombustivel("Etanol Aditivado", new BigDecimal("4.099")));
+
+        TipoCombustivelRequest request = new TipoCombustivelRequest(" Etanol Aditivado ", new BigDecimal("4.199"));
+
+        mockMvc.perform(post("/api/tipos-combustivel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status", is(409)))
+                .andExpect(jsonPath("$.erro", is("Conflito")));
     }
 }
