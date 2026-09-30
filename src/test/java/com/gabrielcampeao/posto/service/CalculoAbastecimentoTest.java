@@ -35,7 +35,7 @@ class CalculoAbastecimentoTest {
             "0.01, 5.899, 0.002",     // 0.01 / 5.899 = 0.001695... -> 0.002 (HALF_UP)
             "99.99, 4.099, 24.394"    // 99.99 / 4.099 = 24.3937... -> 24.394 (HALF_UP)
     })
-    @DisplayName("Deve calcular litros a partir do valor com arredondamento HALF_UP de tres casas decimais")
+    @DisplayName("Deve calcular litros a partir do valor com arredondamento HALF_UP de três casas decimais")
     void deveCalcularLitrosComArredondamentoCorreto(BigDecimal valor, BigDecimal precoLitro, BigDecimal litrosEsperados) {
         BigDecimal litrosCalculados = Abastecimento.calcularLitros(valor, precoLitro);
         assertEquals(litrosEsperados, litrosCalculados);

@@ -66,7 +66,7 @@ class IntegracaoControllerTest {
     }
 
     @Test
-    @DisplayName("Deve cadastrar tipo de combustivel com sucesso e retornar 201 com Location")
+    @DisplayName("Deve cadastrar tipo de combustível com sucesso e retornar 201 com Location")
     void deveCadastrarTipoCombustivel() throws Exception {
         TipoCombustivelRequest request = new TipoCombustivelRequest("Gasolina Comum", new BigDecimal("5.899"));
 
@@ -96,7 +96,7 @@ class IntegracaoControllerTest {
     }
 
     @Test
-    @DisplayName("Deve proibir exclusao de combustível vinculado a bomba")
+    @DisplayName("Deve proibir exclusão de combustível vinculado a bomba")
     void deveProibirExclusaoDeCombustivelEmUso() throws Exception {
         TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Diesel", new BigDecimal("6.199")));
         bombaRepository.save(new Bomba("B-01", tipo));
@@ -519,7 +519,7 @@ class IntegracaoControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 405 e header Allow quando metodo HTTP nao for suportado")
+    @DisplayName("Deve retornar 405 e header Allow quando método HTTP não for suportado")
     void deveRetornar405QuandoMetodoHttpNaoSuportado() throws Exception {
         mockMvc.perform(patch("/api/tipos-combustivel/1"))
                 .andExpect(status().isMethodNotAllowed())
@@ -528,7 +528,7 @@ class IntegracaoControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 404 quando recurso de URL nao for encontrado")
+    @DisplayName("Deve retornar 404 quando recurso de URL não for encontrado")
     void deveRetornar404QuandoRecursoNaoEncontrado() throws Exception {
         mockMvc.perform(get("/api/naoexiste"))
                 .andExpect(status().isNotFound())
@@ -537,7 +537,7 @@ class IntegracaoControllerTest {
     }
 
     @Test
-    @DisplayName("Deve formatar o limite de litros na mensagem de erro sem decimais desnecessarios")
+    @DisplayName("Deve formatar o limite de litros na mensagem de erro sem decimais desnecessários")
     void deveFormatarLimiteDeLitrosNaMensagemDeErro() throws Exception {
         TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Gasolina L1", new BigDecimal("5.000")));
         Bomba bomba = bombaRepository.save(new Bomba("B-70", tipo));
@@ -580,7 +580,7 @@ class IntegracaoControllerTest {
     }
 
     @Test
-    @DisplayName("Deve filtrar resumo de vendas informando apenas data inicio")
+    @DisplayName("Deve filtrar resumo de vendas informando apenas data início")
     void deveFiltrarResumoVendasApenasDataInicio() throws Exception {
         TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Resumo R2", new BigDecimal("4.500")));
         Bomba bomba = bombaRepository.save(new Bomba("B-81", tipo));
@@ -598,7 +598,7 @@ class IntegracaoControllerTest {
     }
 
     @Test
-    @DisplayName("Deve filtrar resumo de vendas com periodo completo inicio e fim")
+    @DisplayName("Deve filtrar resumo de vendas com período completo início e fim")
     void deveFiltrarResumoVendasPeriodoCompleto() throws Exception {
         TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Resumo R3", new BigDecimal("6.000")));
         Bomba bomba = bombaRepository.save(new Bomba("B-82", tipo));
@@ -618,7 +618,7 @@ class IntegracaoControllerTest {
     }
 
     @Test
-    @DisplayName("Deve retornar 400 ao tentar cadastrar combustível com precoLitro excedendo 3 digitos inteiros")
+    @DisplayName("Deve retornar 400 ao tentar cadastrar combustível com precoLitro excedendo 3 dígitos inteiros")
     void deveRetornar400QuandoPrecoLitroExcederTresDigitosInteiros() throws Exception {
         TipoCombustivelRequest request = new TipoCombustivelRequest("Combustivel Super Caro", new BigDecimal("1000.000"));
 
@@ -631,7 +631,7 @@ class IntegracaoControllerTest {
     }
 
     @Test
-    @DisplayName("Deve lancar DataIntegrityViolationException no banco ao salvar dois combustiveis com mesmo nome normalizado")
+    @DisplayName("Deve lançar DataIntegrityViolationException no banco ao salvar dois combustíveis com mesmo nome normalizado")
     void deveLancarExcecaoIntegridadeBancoAoSalvarNomesNormalizadosIguais() {
         tipoCombustivelRepository.saveAndFlush(new TipoCombustivel("Duplo", new BigDecimal("5.000")));
 
@@ -641,7 +641,7 @@ class IntegracaoControllerTest {
     }
 
     @Test
-    @DisplayName("Deve padronizar escala decimal de litros, precoLitro e valorTotal no JSON de resposta")
+    @DisplayName("Deve padronizar escala decimal de litros, preco_litro e valorTotal no JSON de resposta")
     void devePadronizarEscalasDecimaisNoJsonDeResposta() throws Exception {
         TipoCombustivelRequest tipoReq = new TipoCombustivelRequest("Gasolina Escala", new BigDecimal("5"));
         String resTipo = mockMvc.perform(post("/api/tipos-combustivel")
@@ -667,5 +667,16 @@ class IntegracaoControllerTest {
                         .content(objectMapper.writeValueAsString(abValorReq)))
                 .andExpect(status().isCreated())
                 .andExpect(content().string(containsString("\"valorTotal\":50.00")));
+    }
+
+    @Test
+    @DisplayName("Deve lançar DataIntegrityViolationException no banco ao salvar duas bombas com mesmo identificador normalizado")
+    void deveLancarExcecaoIntegridadeBancoAoSalvarIdentificadoresNormalizadosIguais() {
+        TipoCombustivel tipo = tipoCombustivelRepository.saveAndFlush(new TipoCombustivel("Combustivel Dup", new BigDecimal("5.000")));
+        bombaRepository.saveAndFlush(new Bomba("B-DUP", tipo));
+
+        assertThrows(DataIntegrityViolationException.class, () -> {
+            bombaRepository.saveAndFlush(new Bomba("  b-dup ", tipo));
+        });
     }
 }
