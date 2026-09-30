@@ -24,6 +24,9 @@ public class Bomba {
     @Column(nullable = false, unique = true)
     private String identificador;
 
+    @Column(name = "identificador_normalizado", unique = true)
+    private String identificadorNormalizado;
+
     // Relacionamento LAZY para evitar a busca desnecessaria do combustível em todas as consultas
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
@@ -34,7 +37,7 @@ public class Bomba {
     }
 
     public Bomba(String identificador, TipoCombustivel tipoCombustivel) {
-        this.identificador = identificador;
+        setIdentificador(identificador);
         this.tipoCombustivel = tipoCombustivel;
     }
 
@@ -52,6 +55,18 @@ public class Bomba {
 
     public void setIdentificador(String identificador) {
         this.identificador = identificador;
+        this.identificadorNormalizado = normalizar(identificador);
+    }
+
+    public String getIdentificadorNormalizado() {
+        return identificadorNormalizado;
+    }
+
+    private static String normalizar(String text) {
+        if (text == null) {
+            return null;
+        }
+        return text.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT);
     }
 
     public TipoCombustivel getTipoCombustivel() {

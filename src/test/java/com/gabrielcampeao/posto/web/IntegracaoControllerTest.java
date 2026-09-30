@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -26,6 +27,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -625,5 +627,15 @@ class IntegracaoControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status", is(400)))
                 .andExpect(jsonPath("$.campos.precoLitro", is("O preço por litro deve ter até 3 dígitos inteiros e 3 casas decimais")));
+    }
+
+    @Test
+    @DisplayName("Deve lancar DataIntegrityViolationException no banco ao salvar dois combustiveis com mesmo nome normalizado")
+    void deveLancarExcecaoIntegridadeBancoAoSalvarNomesNormalizadosIguais() {
+        tipoCombustivelRepository.saveAndFlush(new TipoCombustivel("Duplo", new BigDecimal("5.000")));
+
+        assertThrows(DataIntegrityViolationException.class, () -> {
+            tipoCombustivelRepository.saveAndFlush(new TipoCombustivel("  duplo ", new BigDecimal("5.500")));
+        });
     }
 }

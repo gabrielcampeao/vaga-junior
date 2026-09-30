@@ -82,9 +82,10 @@ public class BombaService {
     }
 
     private void validarIdentificadorDuplicado(String identificador, Long idIgnorar) {
+        String normalizado = identificador != null ? identificador.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT) : null;
         boolean duplicado = idIgnorar == null
-                ? bombaRepository.existsByIdentificadorIgnoreCase(identificador)
-                : bombaRepository.existsByIdentificadorIgnoreCaseAndIdNot(identificador, idIgnorar);
+                ? bombaRepository.existsByIdentificadorNormalizado(normalizado)
+                : bombaRepository.existsByIdentificadorNormalizadoAndIdNot(normalizado, idIgnorar);
 
         if (duplicado) {
             throw new NomeDuplicadoException(

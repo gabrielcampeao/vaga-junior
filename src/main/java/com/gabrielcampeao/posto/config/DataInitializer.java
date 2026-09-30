@@ -18,6 +18,22 @@ public class DataInitializer {
     @Bean
     public CommandLineRunner initData(TipoCombustivelRepository tipoRepository, BombaRepository bombaRepository) {
         return args -> {
+            // Migração de dados já salvos: preenche os campos nomeNormalizado e identificadorNormalizado
+            // para registros existentes no banco local criados antes da adição das restrições de integridade.
+            tipoRepository.findAll().forEach(tipo -> {
+                if (tipo.getNomeNormalizado() == null && tipo.getNome() != null) {
+                    tipo.setNome(tipo.getNome());
+                    tipoRepository.save(tipo);
+                }
+            });
+
+            bombaRepository.findAll().forEach(bomba -> {
+                if (bomba.getIdentificadorNormalizado() == null && bomba.getIdentificador() != null) {
+                    bomba.setIdentificador(bomba.getIdentificador());
+                    bombaRepository.save(bomba);
+                }
+            });
+
             if (tipoRepository.count() == 0) {
                 TipoCombustivel gasolina = tipoRepository.save(new TipoCombustivel("Gasolina Comum", new BigDecimal("5.899")));
                 TipoCombustivel etanol = tipoRepository.save(new TipoCombustivel("Etanol", new BigDecimal("4.099")));

@@ -10,9 +10,9 @@ import java.util.Optional;
 
 public interface BombaRepository extends JpaRepository<Bomba, Long> {
 
-    boolean existsByIdentificadorIgnoreCase(String identificador);
+    boolean existsByIdentificadorNormalizado(String identificadorNormalizado);
 
-    boolean existsByIdentificadorIgnoreCaseAndIdNot(String identificador, Long id);
+    boolean existsByIdentificadorNormalizadoAndIdNot(String identificadorNormalizado, Long id);
 
     boolean existsByTipoCombustivelId(Long tipoCombustivelId);
 

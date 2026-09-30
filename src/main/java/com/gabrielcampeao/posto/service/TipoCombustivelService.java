@@ -66,9 +66,10 @@ public class TipoCombustivelService {
     }
 
     private void validarNomeDuplicado(String nome, Long idIgnorar) {
+        String normalizado = nome != null ? nome.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT) : null;
         boolean duplicado = idIgnorar == null
-                ? tipoCombustivelRepository.existsByNomeIgnoreCase(nome)
-                : tipoCombustivelRepository.existsByNomeIgnoreCaseAndIdNot(nome, idIgnorar);
+                ? tipoCombustivelRepository.existsByNomeNormalizado(normalizado)
+                : tipoCombustivelRepository.existsByNomeNormalizadoAndIdNot(normalizado, idIgnorar);
 
         if (duplicado) {
             throw new NomeDuplicadoException(

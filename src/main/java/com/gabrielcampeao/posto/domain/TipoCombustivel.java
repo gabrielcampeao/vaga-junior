@@ -24,6 +24,9 @@ public class TipoCombustivel {
     @Column(nullable = false, unique = true)
     private String nome;
 
+    @Column(name = "nome_normalizado", unique = true)
+    private String nomeNormalizado;
+
     // Três casas decimais porque os preços de combustível no Brasil usam a terceira casa
     @NotNull
     @Positive
@@ -34,7 +37,7 @@ public class TipoCombustivel {
     }
 
     public TipoCombustivel(String nome, BigDecimal precoLitro) {
-        this.nome = nome;
+        setNome(nome);
         this.precoLitro = precoLitro;
     }
 
@@ -52,6 +55,18 @@ public class TipoCombustivel {
 
     public void setNome(String nome) {
         this.nome = nome;
+        this.nomeNormalizado = normalizar(nome);
+    }
+
+    public String getNomeNormalizado() {
+        return nomeNormalizado;
+    }
+
+    private static String normalizar(String text) {
+        if (text == null) {
+            return null;
+        }
+        return text.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT);
     }
 
     public BigDecimal getPrecoLitro() {
