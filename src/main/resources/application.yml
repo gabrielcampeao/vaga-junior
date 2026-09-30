@@ -5,11 +5,13 @@ spring:
   datasource:
     url: jdbc:h2:file:./data/posto
     driver-class-name: org.h2.Driver
+    # NOTA: Usuario 'sa' sem senha deve ser usado apenas para desenvolvimento
     username: sa
     password:
 
   jpa:
     hibernate:
+      # MELHORIA FUTURA: Trocar 'ddl-auto: update' por controle de migracoes como o Flyway
       ddl-auto: update
     open-in-view: false
     properties:
@@ -18,6 +20,7 @@ spring:
 
   h2:
     console:
+      # NOTA: H2 Console habilitado apenas para facilitar o desenvolvimento local
       enabled: true
       path: /h2-console
 
