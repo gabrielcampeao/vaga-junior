@@ -64,7 +64,13 @@ public class AbastecimentoService {
 
     /**
      * Gera um resumo do total de vendas (em valor e litros) agrupado por tipo de combustível.
-     * Se nenhuma data for fornecida, assume-se os últimos 30 dias.
+     * Regras para o período:
+     * <ul>
+     *   <li>Sem datas fornecidas: últimos 30 dias até a data/hora atual.</li>
+     *   <li>Apenas data final (fim): período de 30 dias anteriores à data fim até a própria data fim.</li>
+     *   <li>Apenas data inicial (inicio): período da data inicio até a data/hora atual.</li>
+     *   <li>Ambas as datas fornecidas: intervalo exato entre a data inicio e a data fim.</li>
+     * </ul>
      *
      * @param inicio Data inicial do período (opcional)
      * @param fim Data final do período (opcional)
@@ -74,8 +80,8 @@ public class AbastecimentoService {
     @Transactional(readOnly = true)
     public List<ResumoVendasResponse> obterResumoVendas(LocalDateTime inicio, LocalDateTime fim) {
         validarPeriodo(inicio, fim);
-        LocalDateTime dataInicio = inicio != null ? inicio : LocalDateTime.now().minusDays(30);
         LocalDateTime dataFim = fim != null ? fim : LocalDateTime.now();
+        LocalDateTime dataInicio = inicio != null ? inicio : dataFim.minusDays(30);
         return abastecimentoRepository.gerarResumoVendasPorPeriodo(dataInicio, dataFim);
     }
 

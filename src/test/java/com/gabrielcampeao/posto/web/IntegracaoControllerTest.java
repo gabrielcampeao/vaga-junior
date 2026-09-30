@@ -548,4 +548,69 @@ class IntegracaoControllerTest {
                 .andExpect(jsonPath("$.status", is(400)))
                 .andExpect(jsonPath("$.mensagem", containsString("(200 litros)")));
     }
+
+    @Test
+    @DisplayName("Deve filtrar resumo de vendas informando apenas data fim (janela de 30 dias anteriores a fim)")
+    void deveFiltrarResumoVendasApenasDataFim() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Resumo R1", new BigDecimal("5.000")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-80", tipo));
+
+        LocalDateTime dataDez = LocalDateTime.of(2025, 12, 15, 10, 0, 0);
+        AbastecimentoRequest reqDez = new AbastecimentoRequest(bomba.getId(), new BigDecimal("10.000"), dataDez, null);
+        mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reqDez)))
+                .andExpect(status().isCreated());
+
+        LocalDateTime dataJun = LocalDateTime.of(2025, 6, 15, 10, 0, 0);
+        AbastecimentoRequest reqJun = new AbastecimentoRequest(bomba.getId(), new BigDecimal("15.000"), dataJun, null);
+        mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(reqJun)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/abastecimentos/resumo?fim=2025-12-31T23:59:59"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].tipoCombustivel", is("Resumo R1")))
+                .andExpect(jsonPath("$[0].totalLitros", is(10.0)));
+    }
+
+    @Test
+    @DisplayName("Deve filtrar resumo de vendas informando apenas data inicio")
+    void deveFiltrarResumoVendasApenasDataInicio() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Resumo R2", new BigDecimal("4.500")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-81", tipo));
+
+        AbastecimentoRequest request = new AbastecimentoRequest(bomba.getId(), new BigDecimal("20.000"), null, null);
+        mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        String ontemIso = LocalDateTime.now().minusDays(1).toString();
+        mockMvc.perform(get("/api/abastecimentos/resumo?inicio=" + ontemIso))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.tipoCombustivel == 'Resumo R2')]", hasSize(1)));
+    }
+
+    @Test
+    @DisplayName("Deve filtrar resumo de vendas com periodo completo inicio e fim")
+    void deveFiltrarResumoVendasPeriodoCompleto() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Resumo R3", new BigDecimal("6.000")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-82", tipo));
+
+        LocalDateTime dataDez = LocalDateTime.of(2025, 12, 15, 10, 0, 0);
+        AbastecimentoRequest request = new AbastecimentoRequest(bomba.getId(), new BigDecimal("10.000"), dataDez, null);
+        mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(get("/api/abastecimentos/resumo?inicio=2025-12-01T00:00:00&fim=2025-12-31T23:59:59"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].tipoCombustivel", is("Resumo R3")))
+                .andExpect(jsonPath("$[0].totalLitros", is(10.0)));
+    }
 }

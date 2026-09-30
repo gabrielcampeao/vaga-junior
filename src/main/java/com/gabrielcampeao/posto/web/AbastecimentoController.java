@@ -53,7 +53,7 @@ public class AbastecimentoController {
         return service.pesquisar(bombaId, inicio, fim, pageable).map(AbastecimentoResponse::fromEntity);
     }
 
-    @Operation(summary = "Obter resumo de vendas por período agrupado por tipo de combustível")
+    @Operation(summary = "Obter resumo de vendas por período agrupado por tipo de combustível", description = "Retorna o total de litros e valor agrupado por combustível. Sem parâmetros considera os últimos 30 dias; informando apenas fim considera 30 dias anteriores a fim; informando apenas inicio considera de inicio até agora.")
     @GetMapping("/resumo")
     public List<ResumoVendasResponse> resumo(
             @Parameter(description = "Data inicial para o período (ex: 2026-01-01T00:00:00)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
