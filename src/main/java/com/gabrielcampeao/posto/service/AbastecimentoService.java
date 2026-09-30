@@ -36,6 +36,17 @@ public class AbastecimentoService {
         this.limiteLitros = limiteLitros;
     }
 
+    /**
+     * Pesquisa abastecimentos aplicando filtros opcionais de bomba e período de datas.
+     * O resultado é paginado e ordenado, por padrão, da data mais recente para a mais antiga.
+     *
+     * @param bombaId ID da bomba (opcional)
+     * @param inicio Data inicial do período (opcional)
+     * @param fim Data final do período (opcional)
+     * @param pageable Informações de paginação
+     * @return Página com os abastecimentos encontrados
+     * @throws RequisicaoInvalidaException se a data de início for posterior à data de fim
+     */
     @Transactional(readOnly = true)
     public Page<Abastecimento> pesquisar(Long bombaId, LocalDateTime inicio, LocalDateTime fim, Pageable pageable) {
         validarPeriodo(inicio, fim);
@@ -51,6 +62,15 @@ public class AbastecimentoService {
         return abastecimentoRepository.findAll(spec, pageableOrdenado);
     }
 
+    /**
+     * Gera um resumo do total de vendas (em valor e litros) agrupado por tipo de combustível.
+     * Se nenhuma data for fornecida, assume-se os últimos 30 dias.
+     *
+     * @param inicio Data inicial do período (opcional)
+     * @param fim Data final do período (opcional)
+     * @return Lista com o resumo de vendas por combustível
+     * @throws RequisicaoInvalidaException se a data de início for posterior à data de fim
+     */
     @Transactional(readOnly = true)
     public List<ResumoVendasResponse> obterResumoVendas(LocalDateTime inicio, LocalDateTime fim) {
         validarPeriodo(inicio, fim);
@@ -67,33 +87,39 @@ public class AbastecimentoService {
     }
 
     @Transactional
-    public Abastecimento registrar(Long bombaId, BigDecimal litros, LocalDateTime dataHora) {
-        validarLimiteLitros(litros);
+    public Abastecimento registrar(Long bombaId, BigDecimal litros, LocalDateTime dataHora, BigDecimal valor) {
+        validarLitrosOuValor(litros, valor);
 
         Bomba bomba = bombaService.buscarPorId(bombaId);
         BigDecimal precoLitro = bomba.getTipoCombustivel().getPrecoLitro();
-        BigDecimal valorTotal = Abastecimento.calcularValorTotal(litros, precoLitro);
-        LocalDateTime dataRegistro = dataHora != null ? dataHora : LocalDateTime.now();
 
-        Abastecimento abastecimento = new Abastecimento(bomba, dataRegistro, litros, precoLitro, valorTotal);
+        LitrosEValor calculo = calcularLitrosEValor(litros, valor, precoLitro);
+
+        validarLimiteLitros(calculo.litros());
+
+        LocalDateTime dataRegistro = dataHora != null ? dataHora : LocalDateTime.now();
+        Abastecimento abastecimento = new Abastecimento(bomba, dataRegistro, calculo.litros(), precoLitro, calculo.valorTotal());
         return abastecimentoRepository.save(abastecimento);
     }
 
     @Transactional
-    public Abastecimento atualizar(Long id, Long bombaId, BigDecimal litros, LocalDateTime dataHora) {
-        validarLimiteLitros(litros);
+    public Abastecimento atualizar(Long id, Long bombaId, BigDecimal litros, LocalDateTime dataHora, BigDecimal valor) {
+        validarLitrosOuValor(litros, valor);
 
         Abastecimento existente = buscarPorId(id);
         Bomba bomba = bombaService.buscarPorId(bombaId);
 
         boolean bombaMudou = !existente.getBomba().getId().equals(bomba.getId());
         BigDecimal precoLitro = bombaMudou ? bomba.getTipoCombustivel().getPrecoLitro() : existente.getPrecoLitro();
-        BigDecimal valorTotal = Abastecimento.calcularValorTotal(litros, precoLitro);
+
+        LitrosEValor calculo = calcularLitrosEValor(litros, valor, precoLitro);
+
+        validarLimiteLitros(calculo.litros());
 
         existente.setBomba(bomba);
-        existente.setLitros(litros);
+        existente.setLitros(calculo.litros());
         existente.setPrecoLitro(precoLitro);
-        existente.setValorTotal(valorTotal);
+        existente.setValorTotal(calculo.valorTotal());
         if (dataHora != null) {
             existente.setDataHora(dataHora);
         }
@@ -107,6 +133,17 @@ public class AbastecimentoService {
         abastecimentoRepository.delete(abastecimento);
     }
 
+    private record LitrosEValor(BigDecimal litros, BigDecimal valorTotal) {}
+
+    private LitrosEValor calcularLitrosEValor(BigDecimal litros, BigDecimal valor, BigDecimal precoLitro) {
+        if (valor != null) {
+            BigDecimal litrosCalculados = Abastecimento.calcularLitros(valor, precoLitro);
+            return new LitrosEValor(litrosCalculados, valor);
+        }
+        BigDecimal valorCalculado = Abastecimento.calcularValorTotal(litros, precoLitro);
+        return new LitrosEValor(litros, valorCalculado);
+    }
+
     private void validarLimiteLitros(BigDecimal litros) {
         if (limiteLitros != null && litros.compareTo(limiteLitros) > 0) {
             throw new LimiteLitrosExcedidoException(
@@ -117,6 +154,15 @@ public class AbastecimentoService {
     private void validarPeriodo(LocalDateTime inicio, LocalDateTime fim) {
         if (inicio != null && fim != null && inicio.isAfter(fim)) {
             throw new RequisicaoInvalidaException("A data de início não pode ser posterior à data de fim");
+        }
+    }
+
+    private void validarLitrosOuValor(BigDecimal litros, BigDecimal valor) {
+        if (litros != null && valor != null) {
+            throw new RequisicaoInvalidaException("Informe apenas litros ou valor, não ambos");
+        }
+        if (litros == null && valor == null) {
+            throw new RequisicaoInvalidaException("Informe litros ou valor");
         }
     }
 }

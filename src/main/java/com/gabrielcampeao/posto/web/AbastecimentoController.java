@@ -6,6 +6,7 @@ import com.gabrielcampeao.posto.web.dto.AbastecimentoRequest;
 import com.gabrielcampeao.posto.web.dto.AbastecimentoResponse;
 import com.gabrielcampeao.posto.web.dto.ErroResponse;
 import com.gabrielcampeao.posto.web.dto.ResumoVendasResponse;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -45,9 +46,9 @@ public class AbastecimentoController {
     @Operation(summary = "Pesquisar abastecimentos com filtro por bomba e período", description = "Retorna lista paginada dos abastecimentos ordenados do mais recente para o mais antigo.")
     @GetMapping
     public Page<AbastecimentoResponse> pesquisar(
-            @RequestParam(required = false) Long bombaId,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fim,
+            @Parameter(description = "ID da bomba para filtrar") @RequestParam(required = false) Long bombaId,
+            @Parameter(description = "Data inicial para o período (ex: 2026-01-01T00:00:00)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
+            @Parameter(description = "Data final para o período (ex: 2026-12-31T23:59:59)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fim,
             Pageable pageable) {
         return service.pesquisar(bombaId, inicio, fim, pageable).map(AbastecimentoResponse::fromEntity);
     }
@@ -55,8 +56,8 @@ public class AbastecimentoController {
     @Operation(summary = "Obter resumo de vendas por período agrupado por tipo de combustível")
     @GetMapping("/resumo")
     public List<ResumoVendasResponse> resumo(
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fim) {
+            @Parameter(description = "Data inicial para o período (ex: 2026-01-01T00:00:00)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime inicio,
+            @Parameter(description = "Data final para o período (ex: 2026-12-31T23:59:59)") @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fim) {
         return service.obterResumoVendas(inicio, fim);
     }
 
@@ -69,14 +70,14 @@ public class AbastecimentoController {
         return AbastecimentoResponse.fromEntity(service.buscarPorId(id));
     }
 
-    @Operation(summary = "Registrar abastecimento", description = "O servidor calcula o valor total automaticamente com base no preço por litro atual da bomba.", responses = {
+    @Operation(summary = "Registrar abastecimento", description = "Informe litros OU valor em reais (nunca ambos). O servidor calcula o campo faltante automaticamente com base no preço por litro da bomba.", responses = {
             @ApiResponse(responseCode = "201", description = "Abastecimento registrado"),
-            @ApiResponse(responseCode = "400", description = "Dados inválidos ou quantidade de litros excede limite permitida"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos, litros e valor informados juntos, ou limite de litros excedido"),
             @ApiResponse(responseCode = "404", description = "Bomba informada não encontrada", content = @Content(schema = @Schema(implementation = ErroResponse.class)))
     })
     @PostMapping
     public ResponseEntity<AbastecimentoResponse> registrar(@Valid @RequestBody AbastecimentoRequest request) {
-        Abastecimento salvo = service.registrar(request.bombaId(), request.litros(), request.dataHora());
+        Abastecimento salvo = service.registrar(request.bombaId(), request.litros(), request.dataHora(), request.valor());
 
         URI location = ServletUriComponentsBuilder.fromCurrentRequest()
                 .path("/{id}")
@@ -86,13 +87,13 @@ public class AbastecimentoController {
         return ResponseEntity.created(location).body(AbastecimentoResponse.fromEntity(salvo));
     }
 
-    @Operation(summary = "Atualizar abastecimento por ID", responses = {
+    @Operation(summary = "Atualizar abastecimento por ID", description = "Informe litros OU valor em reais (nunca ambos).", responses = {
             @ApiResponse(responseCode = "200", description = "Abastecimento atualizado"),
             @ApiResponse(responseCode = "404", description = "Abastecimento ou bomba não encontrada")
     })
     @PutMapping("/{id}")
     public AbastecimentoResponse atualizar(@PathVariable Long id, @Valid @RequestBody AbastecimentoRequest request) {
-        Abastecimento atualizado = service.atualizar(id, request.bombaId(), request.litros(), request.dataHora());
+        Abastecimento atualizado = service.atualizar(id, request.bombaId(), request.litros(), request.dataHora(), request.valor());
         return AbastecimentoResponse.fromEntity(atualizado);
     }
 
