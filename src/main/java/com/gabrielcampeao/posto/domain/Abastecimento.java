@@ -66,6 +66,13 @@ public class Abastecimento {
         return litros.multiply(precoLitro).setScale(2, RoundingMode.HALF_UP);
     }
 
+    public static BigDecimal calcularLitros(BigDecimal valor, BigDecimal precoLitro) {
+        if (valor == null || precoLitro == null || precoLitro.compareTo(BigDecimal.ZERO) == 0) {
+            return BigDecimal.ZERO.setScale(3, RoundingMode.HALF_UP);
+        }
+        return valor.divide(precoLitro, 3, RoundingMode.HALF_UP);
+    }
+
     public Long getId() {
         return id;
     }
