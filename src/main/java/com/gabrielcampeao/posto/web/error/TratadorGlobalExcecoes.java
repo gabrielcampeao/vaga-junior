@@ -15,6 +15,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -131,6 +132,16 @@ public class TratadorGlobalExcecoes {
     public ResponseEntity<ErroResponse> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex) {
         ErroResponse erro = ErroResponse.of(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(), "Tipo de mídia não suportado", "Content-Type não suportado; use application/json");
         return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(erro);
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<ErroResponse> handleExclusaoConcorrente(ObjectOptimisticLockingFailureException ex) {
+        ErroResponse erro = ErroResponse.of(
+                HttpStatus.CONFLICT.value(),
+                "Conflito",
+                "O recurso foi alterado ou removido por outra requisição; tente novamente"
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(erro);
     }
 
     @ExceptionHandler(Exception.class)
