@@ -22,6 +22,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -530,5 +531,21 @@ class IntegracaoControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status", is(404)))
                 .andExpect(jsonPath("$.mensagem", is("Recurso não encontrado: /api/naoexiste")));
+    }
+
+    @Test
+    @DisplayName("Deve formatar o limite de litros na mensagem de erro sem decimais desnecessarios")
+    void deveFormatarLimiteDeLitrosNaMensagemDeErro() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Gasolina L1", new BigDecimal("5.000")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-70", tipo));
+
+        AbastecimentoRequest request = new AbastecimentoRequest(bomba.getId(), new BigDecimal("200.001"), null, null);
+
+        mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.mensagem", containsString("(200 litros)")));
     }
 }

@@ -164,8 +164,10 @@ public class AbastecimentoService {
 
     private void validarLimiteLitros(BigDecimal litros) {
         if (limiteLitros != null && litros.compareTo(limiteLitros) > 0) {
+            String litrosStr = litros.stripTrailingZeros().toPlainString();
+            String limiteStr = limiteLitros.stripTrailingZeros().toPlainString();
             throw new LimiteLitrosExcedidoException(
-                    "Quantidade de litros (" + litros + ") excede o limite máximo permitido por abastecimento (" + limiteLitros + " litros)");
+                    "Quantidade de litros (" + litrosStr + ") excede o limite máximo permitido por abastecimento (" + limiteStr + " litros)");
         }
     }
 
