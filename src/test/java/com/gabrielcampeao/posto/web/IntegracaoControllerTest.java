@@ -453,4 +453,20 @@ class IntegracaoControllerTest {
                 .andExpect(jsonPath("$.status", is(400)))
                 .andExpect(jsonPath("$.mensagem", is("Informe apenas litros ou valor, não ambos")));
     }
+
+    @Test
+    @DisplayName("Deve retornar 400 quando valor resultar em zero litros")
+    void deveRetornar400QuandoValorResultarEmZeroLitros() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Combustivel Caro", new BigDecimal("100.000")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-50", tipo));
+
+        AbastecimentoRequest request = new AbastecimentoRequest(bomba.getId(), null, null, new BigDecimal("0.01"));
+
+        mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.mensagem", is("O valor informado é insuficiente para abastecer ao menos 0,001 litro")));
+    }
 }

@@ -135,6 +135,9 @@ public class AbastecimentoService {
         LitrosEValor res;
         if (valor != null) {
             BigDecimal litrosCalculados = Abastecimento.calcularLitros(valor, precoLitro);
+            if (litrosCalculados.compareTo(BigDecimal.ZERO) == 0) {
+                throw new RequisicaoInvalidaException("O valor informado é insuficiente para abastecer ao menos 0,001 litro");
+            }
             res = new LitrosEValor(litrosCalculados, valor);
         } else {
             BigDecimal valorCalculado = Abastecimento.calcularValorTotal(litros, precoLitro);
