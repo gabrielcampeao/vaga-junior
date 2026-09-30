@@ -10,16 +10,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.mapping.PropertyReferenceException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @RestControllerAdvice
 public class TratadorGlobalExcecoes {
@@ -97,6 +103,34 @@ public class TratadorGlobalExcecoes {
         );
 
         return ResponseEntity.badRequest().body(erro);
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErroResponse> handleNoResourceFound(NoResourceFoundException ex) {
+        String path = ex.getResourcePath();
+        if (!path.startsWith("/")) {
+            path = "/" + path;
+        }
+        ErroResponse erro = ErroResponse.of(HttpStatus.NOT_FOUND.value(), "Não encontrado", "Recurso não encontrado: " + path);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(erro);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErroResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        String msg = String.format("O método %s não é suportado para este recurso", ex.getMethod());
+        ErroResponse erro = ErroResponse.of(HttpStatus.METHOD_NOT_ALLOWED.value(), "Método não permitido", msg);
+        HttpHeaders headers = new HttpHeaders();
+        Set<HttpMethod> supported = ex.getSupportedHttpMethods();
+        if (supported != null && !supported.isEmpty()) {
+            headers.setAllow(supported);
+        }
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).headers(headers).body(erro);
+    }
+
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErroResponse> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex) {
+        ErroResponse erro = ErroResponse.of(HttpStatus.UNSUPPORTED_MEDIA_TYPE.value(), "Tipo de mídia não suportado", "Content-Type não suportado; use application/json");
+        return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body(erro);
     }
 
     @ExceptionHandler(Exception.class)

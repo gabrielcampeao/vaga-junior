@@ -27,6 +27,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -501,5 +502,33 @@ class IntegracaoControllerTest {
                 .andExpect(jsonPath("$.litros", is(10.0)))
                 .andExpect(jsonPath("$.precoLitro", is(5.0)))
                 .andExpect(jsonPath("$.valorTotal", is(50.0)));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 415 quando Content-Type for application/x-www-form-urlencoded")
+    void deveRetornar415QuandoMediaTypeNaoSuportado() throws Exception {
+        mockMvc.perform(post("/api/tipos-combustivel")
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                        .content("nome=Gasolina&precoLitro=5.000"))
+                .andExpect(status().isUnsupportedMediaType())
+                .andExpect(jsonPath("$.status", is(415)));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 405 e header Allow quando metodo HTTP nao for suportado")
+    void deveRetornar405QuandoMetodoHttpNaoSuportado() throws Exception {
+        mockMvc.perform(patch("/api/tipos-combustivel/1"))
+                .andExpect(status().isMethodNotAllowed())
+                .andExpect(header().exists("Allow"))
+                .andExpect(jsonPath("$.status", is(405)));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 404 quando recurso de URL nao for encontrado")
+    void deveRetornar404QuandoRecursoNaoEncontrado() throws Exception {
+        mockMvc.perform(get("/api/naoexiste"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status", is(404)))
+                .andExpect(jsonPath("$.mensagem", is("Recurso não encontrado: /api/naoexiste")));
     }
 }
