@@ -1,5 +1,6 @@
 package com.gabrielcampeao.posto.domain;
 
+import com.gabrielcampeao.posto.util.NormalizadorTexto;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -55,18 +56,11 @@ public class TipoCombustivel {
 
     public void setNome(String nome) {
         this.nome = nome;
-        this.nomeNormalizado = normalizar(nome);
+        this.nomeNormalizado = NormalizadorTexto.normalizar(nome);
     }
 
     public String getNomeNormalizado() {
         return nomeNormalizado;
-    }
-
-    private static String normalizar(String text) {
-        if (text == null) {
-            return null;
-        }
-        return text.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT);
     }
 
     public BigDecimal getPrecoLitro() {

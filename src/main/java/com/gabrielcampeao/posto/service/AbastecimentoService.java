@@ -24,6 +24,12 @@ import java.util.List;
 @Service
 public class AbastecimentoService {
 
+    /**
+     * Valor total máximo permitido para um abastecimento (R$ 99.999.999,99),
+     * correspondente ao limite máximo suportado pela coluna NUMERIC(10,2) do banco de dados.
+     */
+    private static final BigDecimal VALOR_TOTAL_MAXIMO = new BigDecimal("99999999.99");
+
     private final AbastecimentoRepository abastecimentoRepository;
     private final BombaService bombaService;
     private final BigDecimal limiteLitros;
@@ -143,12 +149,6 @@ public class AbastecimentoService {
         Abastecimento abastecimento = buscarPorId(id);
         abastecimentoRepository.delete(abastecimento);
     }
-
-    /**
-     * Valor total máximo permitido para um abastecimento (R$ 99.999.999,99),
-     * correspondente ao limite máximo suportado pela coluna NUMERIC(10,2) do banco de dados.
-     */
-    private static final BigDecimal VALOR_TOTAL_MAXIMO = new BigDecimal("99999999.99");
 
     private record LitrosEValor(BigDecimal litros, BigDecimal valorTotal) {}
 

@@ -1,5 +1,6 @@
 package com.gabrielcampeao.posto.domain;
 
+import com.gabrielcampeao.posto.util.NormalizadorTexto;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -55,18 +56,11 @@ public class Bomba {
 
     public void setIdentificador(String identificador) {
         this.identificador = identificador;
-        this.identificadorNormalizado = normalizar(identificador);
+        this.identificadorNormalizado = NormalizadorTexto.normalizar(identificador);
     }
 
     public String getIdentificadorNormalizado() {
         return identificadorNormalizado;
-    }
-
-    private static String normalizar(String text) {
-        if (text == null) {
-            return null;
-        }
-        return text.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT);
     }
 
     public TipoCombustivel getTipoCombustivel() {

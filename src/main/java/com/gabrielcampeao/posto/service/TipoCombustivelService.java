@@ -6,6 +6,7 @@ import com.gabrielcampeao.posto.repository.TipoCombustivelRepository;
 import com.gabrielcampeao.posto.service.exception.NomeDuplicadoException;
 import com.gabrielcampeao.posto.service.exception.RecursoEmUsoException;
 import com.gabrielcampeao.posto.service.exception.RecursoNaoEncontradoException;
+import com.gabrielcampeao.posto.util.NormalizadorTexto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -66,7 +67,7 @@ public class TipoCombustivelService {
     }
 
     private void validarNomeDuplicado(String nome, Long idIgnorar) {
-        String normalizado = nome != null ? nome.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT) : null;
+        String normalizado = NormalizadorTexto.normalizar(nome);
         boolean duplicado = idIgnorar == null
                 ? tipoCombustivelRepository.existsByNomeNormalizado(normalizado)
                 : tipoCombustivelRepository.existsByNomeNormalizadoAndIdNot(normalizado, idIgnorar);

@@ -7,6 +7,7 @@ import com.gabrielcampeao.posto.repository.BombaRepository;
 import com.gabrielcampeao.posto.service.exception.NomeDuplicadoException;
 import com.gabrielcampeao.posto.service.exception.RecursoEmUsoException;
 import com.gabrielcampeao.posto.service.exception.RecursoNaoEncontradoException;
+import com.gabrielcampeao.posto.util.NormalizadorTexto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -82,7 +83,7 @@ public class BombaService {
     }
 
     private void validarIdentificadorDuplicado(String identificador, Long idIgnorar) {
-        String normalizado = identificador != null ? identificador.trim().replaceAll("\\s+", " ").toLowerCase(java.util.Locale.ROOT) : null;
+        String normalizado = NormalizadorTexto.normalizar(identificador);
         boolean duplicado = idIgnorar == null
                 ? bombaRepository.existsByIdentificadorNormalizado(normalizado)
                 : bombaRepository.existsByIdentificadorNormalizadoAndIdNot(normalizado, idIgnorar);

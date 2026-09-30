@@ -11,11 +11,10 @@ public record TipoCombustivelResponse(
 ) {
 
     public static TipoCombustivelResponse fromEntity(TipoCombustivel entidade) {
-        BigDecimal precoLitro = entidade.getPrecoLitro() != null ? entidade.getPrecoLitro().setScale(3, java.math.RoundingMode.HALF_UP) : null;
         return new TipoCombustivelResponse(
                 entidade.getId(),
                 entidade.getNome(),
-                precoLitro
+                entidade.getPrecoLitro()
         );
     }
 }
