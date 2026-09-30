@@ -33,6 +33,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -637,5 +638,34 @@ class IntegracaoControllerTest {
         assertThrows(DataIntegrityViolationException.class, () -> {
             tipoCombustivelRepository.saveAndFlush(new TipoCombustivel("  duplo ", new BigDecimal("5.500")));
         });
+    }
+
+    @Test
+    @DisplayName("Deve padronizar escala decimal de litros, precoLitro e valorTotal no JSON de resposta")
+    void devePadronizarEscalasDecimaisNoJsonDeResposta() throws Exception {
+        TipoCombustivelRequest tipoReq = new TipoCombustivelRequest("Gasolina Escala", new BigDecimal("5"));
+        String resTipo = mockMvc.perform(post("/api/tipos-combustivel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(tipoReq)))
+                .andExpect(status().isCreated())
+                .andExpect(content().string(containsString("\"precoLitro\":5.000")))
+                .andReturn().getResponse().getContentAsString();
+
+        Long tipoId = objectMapper.readTree(resTipo).get("id").asLong();
+        Bomba bomba = bombaRepository.save(new Bomba("B-90", tipoCombustivelRepository.findById(tipoId).orElseThrow()));
+
+        AbastecimentoRequest abLitrosReq = new AbastecimentoRequest(bomba.getId(), new BigDecimal("10"), null, null);
+        mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(abLitrosReq)))
+                .andExpect(status().isCreated())
+                .andExpect(content().string(containsString("\"litros\":10.000")));
+
+        AbastecimentoRequest abValorReq = new AbastecimentoRequest(bomba.getId(), null, null, new BigDecimal("50"));
+        mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(abValorReq)))
+                .andExpect(status().isCreated())
+                .andExpect(content().string(containsString("\"valorTotal\":50.00")));
     }
 }

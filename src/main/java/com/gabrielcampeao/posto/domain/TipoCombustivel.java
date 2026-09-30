@@ -38,7 +38,7 @@ public class TipoCombustivel {
 
     public TipoCombustivel(String nome, BigDecimal precoLitro) {
         setNome(nome);
-        this.precoLitro = precoLitro;
+        setPrecoLitro(precoLitro);
     }
 
     public Long getId() {
@@ -74,6 +74,6 @@ public class TipoCombustivel {
     }
 
     public void setPrecoLitro(BigDecimal precoLitro) {
-        this.precoLitro = precoLitro;
+        this.precoLitro = precoLitro != null ? precoLitro.setScale(3, java.math.RoundingMode.HALF_UP) : null;
     }
 }

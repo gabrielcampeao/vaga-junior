@@ -54,9 +54,9 @@ public class Abastecimento {
     public Abastecimento(Bomba bomba, LocalDateTime dataHora, BigDecimal litros, BigDecimal precoLitro, BigDecimal valorTotal) {
         this.bomba = bomba;
         this.dataHora = dataHora;
-        this.litros = litros;
-        this.precoLitro = precoLitro;
-        this.valorTotal = valorTotal;
+        setLitros(litros);
+        setPrecoLitro(precoLitro);
+        setValorTotal(valorTotal);
     }
 
     /**
@@ -118,7 +118,7 @@ public class Abastecimento {
     }
 
     public void setLitros(BigDecimal litros) {
-        this.litros = litros;
+        this.litros = litros != null ? litros.setScale(3, RoundingMode.HALF_UP) : null;
     }
 
     public BigDecimal getPrecoLitro() {
@@ -126,7 +126,7 @@ public class Abastecimento {
     }
 
     public void setPrecoLitro(BigDecimal precoLitro) {
-        this.precoLitro = precoLitro;
+        this.precoLitro = precoLitro != null ? precoLitro.setScale(3, RoundingMode.HALF_UP) : null;
     }
 
     public BigDecimal getValorTotal() {
@@ -134,6 +134,6 @@ public class Abastecimento {
     }
 
     public void setValorTotal(BigDecimal valorTotal) {
-        this.valorTotal = valorTotal;
+        this.valorTotal = valorTotal != null ? valorTotal.setScale(2, RoundingMode.HALF_UP) : null;
     }
 }
