@@ -407,7 +407,8 @@ class IntegracaoControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status", is(400)));
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.mensagem", is("Informe apenas litros ou valor, não ambos")));
     }
 
     @Test
@@ -438,7 +439,8 @@ class IntegracaoControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status", is(400)));
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.mensagem", is("Informe litros ou valor")));
     }
 
     @Test
@@ -468,5 +470,36 @@ class IntegracaoControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status", is(400)))
                 .andExpect(jsonPath("$.mensagem", is("O valor informado é insuficiente para abastecer ao menos 0,001 litro")));
+    }
+
+    @Test
+    @DisplayName("Deve atualizar abastecimento por valor mantendo preço histórico quando preço do combustível muda")
+    void deveAtualizarAbastecimentoPorValorMantendoPrecoHistorico() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Gasolina H1", new BigDecimal("5.000")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-60", tipo));
+
+        AbastecimentoRequest postReq = new AbastecimentoRequest(bomba.getId(), new BigDecimal("10.000"), null, null);
+        String responseStr = mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(postReq)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        Long abastecimentoId = objectMapper.readTree(responseStr).get("id").asLong();
+
+        TipoCombustivelRequest tipoUpdate = new TipoCombustivelRequest("Gasolina H1", new BigDecimal("6.000"));
+        mockMvc.perform(put("/api/tipos-combustivel/" + tipo.getId())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(tipoUpdate)))
+                .andExpect(status().isOk());
+
+        AbastecimentoRequest putReq = new AbastecimentoRequest(bomba.getId(), null, null, new BigDecimal("50.00"));
+        mockMvc.perform(put("/api/abastecimentos/" + abastecimentoId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(putReq)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.litros", is(10.0)))
+                .andExpect(jsonPath("$.precoLitro", is(5.0)))
+                .andExpect(jsonPath("$.valorTotal", is(50.0)));
     }
 }
