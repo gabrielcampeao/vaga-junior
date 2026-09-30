@@ -59,6 +59,14 @@ public class Abastecimento {
         this.valorTotal = valorTotal;
     }
 
+    /**
+     * Calcula o valor total em reais com base na quantidade de litros e no preço por litro.
+     * O valor final é arredondado para 2 casas decimais utilizando a regra RoundingMode.HALF_UP.
+     *
+     * @param litros quantidade de litros abastecidos
+     * @param precoLitro preço por litro do combustível
+     * @return valor total em reais (escala 2, HALF_UP)
+     */
     public static BigDecimal calcularValorTotal(BigDecimal litros, BigDecimal precoLitro) {
         if (litros == null || precoLitro == null) {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
@@ -66,6 +74,14 @@ public class Abastecimento {
         return litros.multiply(precoLitro).setScale(2, RoundingMode.HALF_UP);
     }
 
+    /**
+     * Calcula a quantidade de litros com base no valor total em reais e no preço por litro.
+     * A quantidade final de litros é arredondada para 3 casas decimais utilizando a regra RoundingMode.HALF_UP.
+     *
+     * @param valor valor total em reais
+     * @param precoLitro preço por litro do combustível
+     * @return quantidade de litros calculada (escala 3, HALF_UP)
+     */
     public static BigDecimal calcularLitros(BigDecimal valor, BigDecimal precoLitro) {
         if (valor == null || precoLitro == null || precoLitro.compareTo(BigDecimal.ZERO) == 0) {
             return BigDecimal.ZERO.setScale(3, RoundingMode.HALF_UP);

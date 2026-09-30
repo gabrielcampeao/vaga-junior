@@ -86,6 +86,10 @@ public class AbastecimentoService {
                         "Abastecimento não encontrado com id " + id));
     }
 
+    /**
+     * Registra um novo abastecimento por litros ou por valor em reais.
+     * O preço por litro aplicado é o valor vigente da bomba no momento do registro.
+     */
     @Transactional
     public Abastecimento registrar(Long bombaId, BigDecimal litros, LocalDateTime dataHora, BigDecimal valor) {
         validarLitrosOuValor(litros, valor);
@@ -100,6 +104,11 @@ public class AbastecimentoService {
         return abastecimentoRepository.save(abastecimento);
     }
 
+    /**
+     * Atualiza um abastecimento existente.
+     * Se a bomba não for alterada, preserva o preço por litro histórico registrado.
+     * Se a bomba for alterada, assume o preço por litro vigente da nova bomba.
+     */
     @Transactional
     public Abastecimento atualizar(Long id, Long bombaId, BigDecimal litros, LocalDateTime dataHora, BigDecimal valor) {
         validarLitrosOuValor(litros, valor);
@@ -131,6 +140,12 @@ public class AbastecimentoService {
 
     private record LitrosEValor(BigDecimal litros, BigDecimal valorTotal) {}
 
+    /**
+     * Realiza o cálculo dos campos finais de litros e valor total.
+     * No modo por valor, o valorTotal retornado é exatamente o valor fornecido e os litros são arredondados para 3 casas decimais (HALF_UP),
+     * o que significa que a multiplicação (litros * precoLitro) pode diferir do valor informado em centavos.
+     * A validação do limite máximo de litros é aplicada sempre sobre a quantidade final de litros calculada.
+     */
     private LitrosEValor calcularLitrosEValor(BigDecimal litros, BigDecimal valor, BigDecimal precoLitro) {
         LitrosEValor res;
         if (valor != null) {
