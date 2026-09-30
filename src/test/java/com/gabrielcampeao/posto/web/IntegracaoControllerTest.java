@@ -7,7 +7,6 @@ import com.gabrielcampeao.posto.repository.AbastecimentoRepository;
 import com.gabrielcampeao.posto.repository.BombaRepository;
 import com.gabrielcampeao.posto.repository.TipoCombustivelRepository;
 import com.gabrielcampeao.posto.web.dto.AbastecimentoRequest;
-import com.gabrielcampeao.posto.web.dto.BombaRequest;
 import com.gabrielcampeao.posto.web.dto.TipoCombustivelRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -21,7 +20,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -114,5 +112,45 @@ class IntegracaoControllerTest {
                 .andExpect(jsonPath("$.litros", is(10.5)))
                 .andExpect(jsonPath("$.precoLitro", is(6.0)))
                 .andExpect(jsonPath("$.valorTotal", is(63.0)));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 400 ao enviar JSON malformado")
+    void deveRetornar400QuandoJsonMalformado() throws Exception {
+        mockMvc.perform(post("/api/tipos-combustivel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{invalid-json}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.mensagem", is("Corpo da requisição ausente ou com formato incorreto")));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 400 quando o parâmetro da URL for de tipo incompatível")
+    void deveRetornar400QuandoTipoParametroInvalido() throws Exception {
+        mockMvc.perform(get("/api/bombas/abc"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 400 quando o parâmetro de ordenação sort for inválido")
+    void deveRetornar400QuandoSortInvalido() throws Exception {
+        mockMvc.perform(get("/api/tipos-combustivel?sort=naoExiste"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)));
+    }
+
+    @Test
+    @DisplayName("Deve retornar 400 com mapa de campos quando a validação falhar")
+    void deveRetornar400ComMapaDeCamposNaValidacao() throws Exception {
+        TipoCombustivelRequest request = new TipoCombustivelRequest("", null);
+
+        mockMvc.perform(post("/api/tipos-combustivel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.campos", notNullValue()));
     }
 }
