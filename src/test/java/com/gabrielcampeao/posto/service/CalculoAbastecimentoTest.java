@@ -1,13 +1,11 @@
 package com.gabrielcampeao.posto.service;
 
-import com.gabrielcampeao.posto.domain.Bomba;
-import com.gabrielcampeao.posto.domain.TipoCombustivel;
+import com.gabrielcampeao.posto.domain.Abastecimento;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -24,7 +22,7 @@ class CalculoAbastecimentoTest {
     })
     @DisplayName("Deve calcular valor total com arredondamento HALF_UP de duas casas decimais nas bordas")
     void deveCalcularValorTotalComArredondamentoCorreto(BigDecimal litros, BigDecimal precoLitro, BigDecimal valorEsperado) {
-        BigDecimal valorCalculado = litros.multiply(precoLitro).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal valorCalculado = Abastecimento.calcularValorTotal(litros, precoLitro);
         assertEquals(valorEsperado, valorCalculado);
     }
 }

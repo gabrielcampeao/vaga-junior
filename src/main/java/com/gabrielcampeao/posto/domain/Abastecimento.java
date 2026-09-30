@@ -13,6 +13,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 
 @Entity
@@ -37,13 +38,11 @@ public class Abastecimento {
     @Column(nullable = false, precision = 10, scale = 3)
     private BigDecimal litros;
 
-    // Cópia histórica do preço do litro no instante do abastecimento
     @NotNull
     @Positive
     @Column(nullable = false, precision = 10, scale = 3)
     private BigDecimal precoLitro;
 
-    // Calculado no servidor (litros * precoLitro com HALF_UP e 2 casas)
     @NotNull
     @Positive
     @Column(nullable = false, precision = 10, scale = 2)
@@ -58,6 +57,13 @@ public class Abastecimento {
         this.litros = litros;
         this.precoLitro = precoLitro;
         this.valorTotal = valorTotal;
+    }
+
+    public static BigDecimal calcularValorTotal(BigDecimal litros, BigDecimal precoLitro) {
+        if (litros == null || precoLitro == null) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        return litros.multiply(precoLitro).setScale(2, RoundingMode.HALF_UP);
     }
 
     public Long getId() {

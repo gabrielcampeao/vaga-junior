@@ -3,19 +3,21 @@ package com.gabrielcampeao.posto.service;
 import com.gabrielcampeao.posto.domain.Abastecimento;
 import com.gabrielcampeao.posto.domain.Bomba;
 import com.gabrielcampeao.posto.repository.AbastecimentoRepository;
+import com.gabrielcampeao.posto.repository.AbastecimentoSpecification;
 import com.gabrielcampeao.posto.service.exception.LimiteLitrosExcedidoException;
 import com.gabrielcampeao.posto.service.exception.RecursoNaoEncontradoException;
+import com.gabrielcampeao.posto.service.exception.RequisicaoInvalidaException;
 import com.gabrielcampeao.posto.web.dto.ResumoVendasResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -34,27 +36,30 @@ public class AbastecimentoService {
         this.limiteLitros = limiteLitros;
     }
 
+    @Transactional(readOnly = true)
     public Page<Abastecimento> pesquisar(Long bombaId, LocalDateTime inicio, LocalDateTime fim, Pageable pageable) {
+        validarPeriodo(inicio, fim);
+
         Sort sort = pageable.getSort().isSorted() ? pageable.getSort() : Sort.by(Sort.Direction.DESC, "dataHora");
         Pageable pageableOrdenado = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sort);
 
-        if (bombaId != null && inicio != null && fim != null) {
-            return abastecimentoRepository.findByBombaIdAndDataHoraBetween(bombaId, inicio, fim, pageableOrdenado);
-        } else if (bombaId != null) {
-            return abastecimentoRepository.findByBombaId(bombaId, pageableOrdenado);
-        } else if (inicio != null && fim != null) {
-            return abastecimentoRepository.findByDataHoraBetween(inicio, fim, pageableOrdenado);
-        }
+        Specification<Abastecimento> spec = Specification
+                .where(AbastecimentoSpecification.bombaIdIgual(bombaId))
+                .and(AbastecimentoSpecification.dataHoraApartirDe(inicio))
+                .and(AbastecimentoSpecification.dataHoraAte(fim));
 
-        return abastecimentoRepository.findAll(pageableOrdenado);
+        return abastecimentoRepository.findAll(spec, pageableOrdenado);
     }
 
+    @Transactional(readOnly = true)
     public List<ResumoVendasResponse> obterResumoVendas(LocalDateTime inicio, LocalDateTime fim) {
+        validarPeriodo(inicio, fim);
         LocalDateTime dataInicio = inicio != null ? inicio : LocalDateTime.now().minusDays(30);
         LocalDateTime dataFim = fim != null ? fim : LocalDateTime.now();
         return abastecimentoRepository.gerarResumoVendasPorPeriodo(dataInicio, dataFim);
     }
 
+    @Transactional(readOnly = true)
     public Abastecimento buscarPorId(Long id) {
         return abastecimentoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNaoEncontradoException(
@@ -67,7 +72,7 @@ public class AbastecimentoService {
 
         Bomba bomba = bombaService.buscarPorId(bombaId);
         BigDecimal precoLitro = bomba.getTipoCombustivel().getPrecoLitro();
-        BigDecimal valorTotal = litros.multiply(precoLitro).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal valorTotal = Abastecimento.calcularValorTotal(litros, precoLitro);
         LocalDateTime dataRegistro = dataHora != null ? dataHora : LocalDateTime.now();
 
         Abastecimento abastecimento = new Abastecimento(bomba, dataRegistro, litros, precoLitro, valorTotal);
@@ -81,8 +86,9 @@ public class AbastecimentoService {
         Abastecimento existente = buscarPorId(id);
         Bomba bomba = bombaService.buscarPorId(bombaId);
 
-        BigDecimal precoLitro = bomba.getTipoCombustivel().getPrecoLitro();
-        BigDecimal valorTotal = litros.multiply(precoLitro).setScale(2, RoundingMode.HALF_UP);
+        boolean bombaMudou = !existente.getBomba().getId().equals(bomba.getId());
+        BigDecimal precoLitro = bombaMudou ? bomba.getTipoCombustivel().getPrecoLitro() : existente.getPrecoLitro();
+        BigDecimal valorTotal = Abastecimento.calcularValorTotal(litros, precoLitro);
 
         existente.setBomba(bomba);
         existente.setLitros(litros);
@@ -105,6 +111,12 @@ public class AbastecimentoService {
         if (limiteLitros != null && litros.compareTo(limiteLitros) > 0) {
             throw new LimiteLitrosExcedidoException(
                     "Quantidade de litros (" + litros + ") excede o limite máximo permitido por abastecimento (" + limiteLitros + " litros)");
+        }
+    }
+
+    private void validarPeriodo(LocalDateTime inicio, LocalDateTime fim) {
+        if (inicio != null && fim != null && inicio.isAfter(fim)) {
+            throw new RequisicaoInvalidaException("A data de início não pode ser posterior à data de fim");
         }
     }
 }
