@@ -15,7 +15,7 @@ public record TipoCombustivelRequest(
 
         @NotNull(message = "O preço por litro é obrigatório")
         @Positive(message = "O preço por litro precisa ser positivo")
-        @Digits(integer = 7, fraction = 3, message = "O preço por litro deve ter até 7 dígitos inteiros e 3 casas decimais")
+        @Digits(integer = 3, fraction = 3, message = "O preço por litro deve ter até 3 dígitos inteiros e 3 casas decimais")
         BigDecimal precoLitro
 ) {
 }

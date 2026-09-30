@@ -144,6 +144,12 @@ public class AbastecimentoService {
         abastecimentoRepository.delete(abastecimento);
     }
 
+    /**
+     * Valor total máximo permitido para um abastecimento (R$ 99.999.999,99),
+     * correspondente ao limite máximo suportado pela coluna NUMERIC(10,2) do banco de dados.
+     */
+    private static final BigDecimal VALOR_TOTAL_MAXIMO = new BigDecimal("99999999.99");
+
     private record LitrosEValor(BigDecimal litros, BigDecimal valorTotal) {}
 
     /**
@@ -163,6 +169,9 @@ public class AbastecimentoService {
         } else {
             BigDecimal valorCalculado = Abastecimento.calcularValorTotal(litros, precoLitro);
             res = new LitrosEValor(litros, valorCalculado);
+        }
+        if (res.valorTotal().compareTo(VALOR_TOTAL_MAXIMO) > 0) {
+            throw new RequisicaoInvalidaException("O valor total do abastecimento excede o máximo permitido");
         }
         validarLimiteLitros(res.litros());
         return res;

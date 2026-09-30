@@ -613,4 +613,17 @@ class IntegracaoControllerTest {
                 .andExpect(jsonPath("$[0].tipoCombustivel", is("Resumo R3")))
                 .andExpect(jsonPath("$[0].totalLitros", is(10.0)));
     }
+
+    @Test
+    @DisplayName("Deve retornar 400 ao tentar cadastrar combustível com precoLitro excedendo 3 digitos inteiros")
+    void deveRetornar400QuandoPrecoLitroExcederTresDigitosInteiros() throws Exception {
+        TipoCombustivelRequest request = new TipoCombustivelRequest("Combustivel Super Caro", new BigDecimal("1000.000"));
+
+        mockMvc.perform(post("/api/tipos-combustivel")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.campos.precoLitro", is("O preço por litro deve ter até 3 dígitos inteiros e 3 casas decimais")));
+    }
 }
