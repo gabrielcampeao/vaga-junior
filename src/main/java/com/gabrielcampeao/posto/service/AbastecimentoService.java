@@ -95,8 +95,6 @@ public class AbastecimentoService {
 
         LitrosEValor calculo = calcularLitrosEValor(litros, valor, precoLitro);
 
-        validarLimiteLitros(calculo.litros());
-
         LocalDateTime dataRegistro = dataHora != null ? dataHora : LocalDateTime.now();
         Abastecimento abastecimento = new Abastecimento(bomba, dataRegistro, calculo.litros(), precoLitro, calculo.valorTotal());
         return abastecimentoRepository.save(abastecimento);
@@ -113,8 +111,6 @@ public class AbastecimentoService {
         BigDecimal precoLitro = bombaMudou ? bomba.getTipoCombustivel().getPrecoLitro() : existente.getPrecoLitro();
 
         LitrosEValor calculo = calcularLitrosEValor(litros, valor, precoLitro);
-
-        validarLimiteLitros(calculo.litros());
 
         existente.setBomba(bomba);
         existente.setLitros(calculo.litros());
@@ -136,12 +132,16 @@ public class AbastecimentoService {
     private record LitrosEValor(BigDecimal litros, BigDecimal valorTotal) {}
 
     private LitrosEValor calcularLitrosEValor(BigDecimal litros, BigDecimal valor, BigDecimal precoLitro) {
+        LitrosEValor res;
         if (valor != null) {
             BigDecimal litrosCalculados = Abastecimento.calcularLitros(valor, precoLitro);
-            return new LitrosEValor(litrosCalculados, valor);
+            res = new LitrosEValor(litrosCalculados, valor);
+        } else {
+            BigDecimal valorCalculado = Abastecimento.calcularValorTotal(litros, precoLitro);
+            res = new LitrosEValor(litros, valorCalculado);
         }
-        BigDecimal valorCalculado = Abastecimento.calcularValorTotal(litros, precoLitro);
-        return new LitrosEValor(litros, valorCalculado);
+        validarLimiteLitros(res.litros());
+        return res;
     }
 
     private void validarLimiteLitros(BigDecimal litros) {
