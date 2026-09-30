@@ -73,7 +73,7 @@ public class BombaController {
     @Operation(summary = "Atualizar bomba por ID", responses = {
             @ApiResponse(responseCode = "200", description = "Bomba atualizada"),
             @ApiResponse(responseCode = "404", description = "Bomba ou tipo de combustível não encontrado"),
-            @ApiResponse(responseCode = "409", description = "Identificador já pertence a outra bomba")
+            @ApiResponse(responseCode = "409", description = "Identificador já pertence a outra bomba ou troca de combustível bloqueada por existirem abastecimentos", content = @Content(schema = @Schema(implementation = ErroResponse.class)))
     })
     @PutMapping("/{id}")
     public BombaResponse atualizar(@PathVariable Long id, @Valid @RequestBody BombaRequest request) {

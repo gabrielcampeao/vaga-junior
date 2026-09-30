@@ -55,6 +55,14 @@ public class BombaService {
         validarIdentificadorDuplicado(idNormalizado, id);
         TipoCombustivel tipo = tipoCombustivelService.buscarPorId(tipoCombustivelId);
 
+        boolean combustivelMudou = !existente.getTipoCombustivel().getId().equals(tipo.getId());
+        if (combustivelMudou && abastecimentoRepository.existsByBombaId(id)) {
+            throw new RecursoEmUsoException(
+                    "Não é possível trocar o combustível da bomba \""
+                    + existente.getIdentificador()
+                    + "\" porque existem abastecimentos registrados nela");
+        }
+
         existente.setIdentificador(idNormalizado);
         existente.setTipoCombustivel(tipo);
         return bombaRepository.save(existente);
