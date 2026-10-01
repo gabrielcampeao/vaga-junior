@@ -3,7 +3,9 @@ spring:
     name: posto
 
   datasource:
-    url: jdbc:h2:file:./data/posto
+    # AUTO_SERVER=TRUE permite que a aplicação e outro cliente (ex: visualizador de BD da IDE)
+    # acessem o arquivo ./data/posto simultaneamente sem erro de lock.
+    url: jdbc:h2:file:./data/posto;AUTO_SERVER=TRUE
     driver-class-name: org.h2.Driver
     # NOTA: Usuario 'sa' sem senha deve ser usado apenas para desenvolvimento
     username: sa
