@@ -687,4 +687,37 @@ class IntegracaoControllerTest {
                 .andExpect(jsonPath("$.status", is(400)))
                 .andExpect(jsonPath("$.mensagem", is("A data de início não pode ser posterior à data de fim")));
     }
+
+    @Test
+    @DisplayName("Deve retornar a mesma dataHora entre POST sem data e GET por id (truncada em segundos)")
+    void deveRetornarMesmaDataHoraEntrePostSemDataEGetPorId() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Gasolina DH", new BigDecimal("5.000")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-DH", tipo));
+
+        AbastecimentoRequest request = new AbastecimentoRequest(bomba.getId(), new BigDecimal("10.000"), null, null);
+
+        String postResponse = mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString();
+
+        String dataHoraPost = objectMapper.readTree(postResponse).get("dataHora").asText();
+        String location = mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andReturn().getResponse().getHeader("Location");
+
+        // Use the id from the first POST
+        Long id = objectMapper.readTree(postResponse).get("id").asLong();
+
+        String getResponse = mockMvc.perform(get("/api/abastecimentos/" + id))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        String dataHoraGet = objectMapper.readTree(getResponse).get("dataHora").asText();
+
+        org.junit.jupiter.api.Assertions.assertEquals(dataHoraPost, dataHoraGet,
+                "dataHora do POST e GET devem ser idênticas (truncadas em segundos)");
+    }
 }

@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 @Service
@@ -111,7 +112,7 @@ public class AbastecimentoService {
 
         LitrosEValor calculo = calcularLitrosEValor(litros, valor, precoLitro);
 
-        LocalDateTime dataRegistro = dataHora != null ? dataHora : LocalDateTime.now();
+        LocalDateTime dataRegistro = (dataHora != null ? dataHora : LocalDateTime.now()).truncatedTo(ChronoUnit.SECONDS);
         Abastecimento abastecimento = new Abastecimento(bomba, dataRegistro, calculo.litros(), precoLitro, calculo.valorTotal());
         return abastecimentoRepository.save(abastecimento);
     }
@@ -138,7 +139,7 @@ public class AbastecimentoService {
         existente.setPrecoLitro(precoLitro);
         existente.setValorTotal(calculo.valorTotal());
         if (dataHora != null) {
-            existente.setDataHora(dataHora);
+            existente.setDataHora(dataHora.truncatedTo(ChronoUnit.SECONDS));
         }
 
         return abastecimentoRepository.save(existente);
