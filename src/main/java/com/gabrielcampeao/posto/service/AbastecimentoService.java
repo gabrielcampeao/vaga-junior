@@ -169,6 +169,9 @@ public class AbastecimentoService {
             res = new LitrosEValor(litrosCalculados, valor);
         } else {
             BigDecimal valorCalculado = Abastecimento.calcularValorTotal(litros, precoLitro);
+            if (valorCalculado.compareTo(BigDecimal.ZERO) == 0) {
+                throw new RequisicaoInvalidaException("A quantidade de litros informada resulta em valor total inferior a R$ 0,01");
+            }
             res = new LitrosEValor(litros, valorCalculado);
         }
         if (res.valorTotal().compareTo(VALOR_TOTAL_MAXIMO) > 0) {

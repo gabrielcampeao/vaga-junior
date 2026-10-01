@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import jakarta.validation.ConstraintViolationException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -142,6 +143,25 @@ public class TratadorGlobalExcecoes {
                 "O recurso foi alterado ou removido por outra requisição; tente novamente"
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(erro);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ErroResponse> handleConstraintViolation(ConstraintViolationException ex) {
+        Map<String, String> campos = new HashMap<>();
+        ex.getConstraintViolations().forEach(violation -> {
+            String caminho = violation.getPropertyPath() != null ? violation.getPropertyPath().toString() : "";
+            String campo = caminho.contains(".") ? caminho.substring(caminho.lastIndexOf('.') + 1) : caminho;
+            campos.put(campo, violation.getMessage());
+        });
+
+        ErroResponse erro = ErroResponse.of(
+                HttpStatus.BAD_REQUEST.value(),
+                "Validação",
+                "Um ou mais campos estão inválidos",
+                campos
+        );
+
+        return ResponseEntity.badRequest().body(erro);
     }
 
     @ExceptionHandler(Exception.class)
