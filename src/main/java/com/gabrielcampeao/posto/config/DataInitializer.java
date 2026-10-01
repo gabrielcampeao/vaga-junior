@@ -24,16 +24,26 @@ public class DataInitializer {
             // tratando duplicatas preexistentes com sufixos ao invés de lançar exceção.
             migracao.migrar();
 
+            // Carga inicial de tipos de combustível (independente das bombas)
             if (tipoRepository.count() == 0) {
-                TipoCombustivel gasolina = tipoRepository.save(new TipoCombustivel("Gasolina Comum", new BigDecimal("5.899")));
-                TipoCombustivel etanol = tipoRepository.save(new TipoCombustivel("Etanol", new BigDecimal("4.099")));
-                TipoCombustivel diesel = tipoRepository.save(new TipoCombustivel("Diesel S10", new BigDecimal("6.199")));
+                tipoRepository.save(new TipoCombustivel("Gasolina Comum", new BigDecimal("5.899")));
+                tipoRepository.save(new TipoCombustivel("Etanol", new BigDecimal("4.099")));
+                tipoRepository.save(new TipoCombustivel("Diesel S10", new BigDecimal("6.199")));
+            }
 
-                if (bombaRepository.count() == 0) {
-                    bombaRepository.save(new Bomba("B-01", gasolina));
-                    bombaRepository.save(new Bomba("B-02", etanol));
-                    bombaRepository.save(new Bomba("B-03", diesel));
-                }
+            // Carga inicial de bombas (independente dos tipos; busca por nome normalizado)
+            if (bombaRepository.count() == 0) {
+                tipoRepository.findAll().forEach(tipo -> {
+                    String bombaId = switch (tipo.getNomeNormalizado()) {
+                        case "gasolina comum" -> "B-01";
+                        case "etanol" -> "B-02";
+                        case "diesel s10" -> "B-03";
+                        default -> null;
+                    };
+                    if (bombaId != null) {
+                        bombaRepository.save(new Bomba(bombaId, tipo));
+                    }
+                });
             }
         };
     }

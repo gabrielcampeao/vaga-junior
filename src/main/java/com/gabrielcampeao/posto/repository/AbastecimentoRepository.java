@@ -37,6 +37,7 @@ public interface AbastecimentoRepository extends JpaRepository<Abastecimento, Lo
            "JOIN a.bomba b " +
            "JOIN b.tipoCombustivel tc " +
            "WHERE a.dataHora BETWEEN :inicio AND :fim " +
-           "GROUP BY tc.nome")
+           "GROUP BY tc.id, tc.nome " +
+           "ORDER BY tc.nome")
     List<ResumoVendasResponse> gerarResumoVendasPorPeriodo(@Param("inicio") LocalDateTime inicio, @Param("fim") LocalDateTime fim);
 }

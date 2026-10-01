@@ -720,4 +720,24 @@ class IntegracaoControllerTest {
         org.junit.jupiter.api.Assertions.assertEquals(dataHoraPost, dataHoraGet,
                 "dataHora do POST e GET devem ser idênticas (truncadas em segundos)");
     }
+
+    @Test
+    @DisplayName("Deve retornar resumo de vendas com período padrão de 30 dias quando nenhuma data for informada")
+    void deveRetornarResumoComPeriodoPadraoDe30DiasQuandoSemDatas() throws Exception {
+        TipoCombustivel tipo = tipoCombustivelRepository.save(new TipoCombustivel("Resumo Default", new BigDecimal("5.000")));
+        Bomba bomba = bombaRepository.save(new Bomba("B-DF", tipo));
+
+        // Abastecimento de hoje (dentro dos últimos 30 dias)
+        AbastecimentoRequest request = new AbastecimentoRequest(bomba.getId(), new BigDecimal("10.000"), null, null);
+        mockMvc.perform(post("/api/abastecimentos")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        // Resumo sem datas → últimos 30 dias até agora
+        mockMvc.perform(get("/api/abastecimentos/resumo"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.tipoCombustivel == 'Resumo Default')]", hasSize(1)))
+                .andExpect(jsonPath("$[?(@.tipoCombustivel == 'Resumo Default')].totalLitros", is(java.util.List.of(10.0))));
+    }
 }
