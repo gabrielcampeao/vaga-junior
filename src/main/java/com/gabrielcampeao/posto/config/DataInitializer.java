@@ -17,12 +17,8 @@ public class DataInitializer {
 
     @Bean
     public CommandLineRunner initData(TipoCombustivelRepository tipoRepository,
-                                     BombaRepository bombaRepository,
-                                     MigracaoNomesNormalizados migracao) {
+                                     BombaRepository bombaRepository) {
         return args -> {
-            // Migração de dados legados: preenche os campos normalizados de forma segura,
-            // tratando duplicatas preexistentes com sufixos ao invés de lançar exceção.
-            migracao.migrar();
 
             // Carga inicial de tipos de combustível (independente das bombas)
             if (tipoRepository.count() == 0) {

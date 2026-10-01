@@ -87,7 +87,7 @@ public class AbastecimentoController {
         return ResponseEntity.created(location).body(AbastecimentoResponse.fromEntity(salvo));
     }
 
-    @Operation(summary = "Atualizar abastecimento por ID", description = "Informe litros OU valor em reais (nunca ambos).", responses = {
+    @Operation(summary = "Atualizar abastecimento por ID", description = "Informe litros OU valor em reais (nunca ambos). Se dataHora for nulo, a data original do abastecimento é mantida (comportamento de PATCH).", responses = {
             @ApiResponse(responseCode = "200", description = "Abastecimento atualizado"),
             @ApiResponse(responseCode = "404", description = "Abastecimento ou bomba não encontrada")
     })
