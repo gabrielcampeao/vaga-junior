@@ -85,9 +85,9 @@ public class AbastecimentoService {
      */
     @Transactional(readOnly = true)
     public List<ResumoVendasResponse> obterResumoVendas(LocalDateTime inicio, LocalDateTime fim) {
-        validarPeriodo(inicio, fim);
         LocalDateTime dataFim = fim != null ? fim : LocalDateTime.now();
         LocalDateTime dataInicio = inicio != null ? inicio : dataFim.minusDays(30);
+        validarPeriodo(dataInicio, dataFim);
         return abastecimentoRepository.gerarResumoVendasPorPeriodo(dataInicio, dataFim);
     }
 

@@ -679,4 +679,12 @@ class IntegracaoControllerTest {
             bombaRepository.saveAndFlush(new Bomba("  b-dup ", tipo));
         });
     }
+    @Test
+    @DisplayName("Deve retornar 400 no resumo quando início futuro sem fim resulta em período invertido")
+    void deveRetornar400NoResumoQuandoInicioFuturoSemFim() throws Exception {
+        mockMvc.perform(get("/api/abastecimentos/resumo?inicio=2030-01-01T00:00:00"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status", is(400)))
+                .andExpect(jsonPath("$.mensagem", is("A data de início não pode ser posterior à data de fim")));
+    }
 }
