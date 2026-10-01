@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 /**
  * Migração de bancos legados: preenche os campos {@code nomeNormalizado} e
@@ -16,7 +17,7 @@ import java.util.List;
  * restrições de unicidade.
  *
  * <p>Quando dois registros legados possuem o mesmo valor normalizado (duplicata
- * preexistente), o segundo recebe um sufixo numérico incremental — ex.: {@code "dup (2)"}
+ * preexistente), o segundo recebe um sufixo numérico incremental — ex.: {@code "(dup 2)"}
  * — para que a constraint única possa ser satisfeita sem perda de dados.</p>
  */
 @Component
@@ -34,6 +35,7 @@ public class MigracaoNomesNormalizados {
     /**
      * Executa a migração de todos os registros pendentes (campo normalizado nulo).
      * Deve ser chamado antes de qualquer operação que dependa da unicidade normalizada.
+     * A chamada é idempotente: registros já migrados (com normalizado não nulo) são ignorados.
      */
     @Transactional
     public void migrar() {
@@ -50,13 +52,12 @@ public class MigracaoNomesNormalizados {
         for (TipoCombustivel tipo : pendentes) {
             String normalizado = NormalizadorTexto.normalizar(tipo.getNome());
             String normalizadoUnico = resolverConflito(normalizado,
-                    n -> tipoCombustivelRepository.existsByNomeNormalizado(n));
-            // setNome aciona o cálculo do nomeNormalizado via entidade,
-            // mas precisamos garantir o valor desconflitado manualmente.
-            tipo.setNome(tipo.getNome()); // preenche nomeNormalizado com valor base
-            if (!normalizado.equals(normalizadoUnico)) {
-                // há conflito: ajusta o nome para tornar o normalizado único
-                tipo.setNome(tipo.getNome() + " " + sufixo(normalizadoUnico, normalizado));
+                    tipoCombustivelRepository::existsByNomeNormalizado);
+            if (normalizado.equals(normalizadoUnico)) {
+                tipo.setNome(tipo.getNome());
+            } else {
+                String sufixo = normalizadoUnico.substring(normalizado.length()).trim();
+                tipo.setNome(tipo.getNome() + " " + sufixo);
             }
             tipoCombustivelRepository.save(tipo);
         }
@@ -71,10 +72,12 @@ public class MigracaoNomesNormalizados {
         for (Bomba bomba : pendentes) {
             String normalizado = NormalizadorTexto.normalizar(bomba.getIdentificador());
             String normalizadoUnico = resolverConflito(normalizado,
-                    n -> bombaRepository.existsByIdentificadorNormalizado(n));
-            bomba.setIdentificador(bomba.getIdentificador());
-            if (!normalizado.equals(normalizadoUnico)) {
-                bomba.setIdentificador(bomba.getIdentificador() + " " + sufixo(normalizadoUnico, normalizado));
+                    bombaRepository::existsByIdentificadorNormalizado);
+            if (normalizado.equals(normalizadoUnico)) {
+                bomba.setIdentificador(bomba.getIdentificador());
+            } else {
+                String sufixo = normalizadoUnico.substring(normalizado.length()).trim();
+                bomba.setIdentificador(bomba.getIdentificador() + " " + sufixo);
             }
             bombaRepository.save(bomba);
         }
@@ -83,11 +86,11 @@ public class MigracaoNomesNormalizados {
     /**
      * Encontra o primeiro valor único adicionando sufixos {@code "(dup 2)"}, {@code "(dup 3)"}, ...
      *
-     * @param base      valor normalizado desejado
+     * @param base        valor normalizado desejado
      * @param existeCheck função que verifica se um normalizado já está em uso
      * @return valor único (pode ser igual a {@code base} se não houver conflito)
      */
-    private String resolverConflito(String base, java.util.function.Predicate<String> existeCheck) {
+    private String resolverConflito(String base, Predicate<String> existeCheck) {
         if (!existeCheck.test(base)) {
             return base;
         }
@@ -99,13 +102,5 @@ public class MigracaoNomesNormalizados {
             }
             contador++;
         }
-    }
-
-    /**
-     * Extrai o sufixo de desambiguação do valor normalizado único em relação ao base.
-     * Ex.: base="etanol", unico="etanol (dup 2)" → retorna "(dup 2)".
-     */
-    private String sufixo(String unico, String base) {
-        return unico.substring(base.length()).trim();
     }
 }
